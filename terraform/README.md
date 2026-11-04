@@ -25,56 +25,8 @@ Terraform authenticates to Azure through the Azure CLI session.
 ```bash
 # edit terraform.tfvars and set github_repo_url
 
-terraform init
-terraform plan
-terraform apply
-```
-
-## After apply
-
-Fetch kubeconfig credentials:
-
-```bash
-az aks get-credentials --resource-group frederique-azure-guild --name azure-guild-aks
-```
-
-Get the ArgoCD initial admin password:
-
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath="{.data.password}" | base64 -d
-```
-
-Access the ArgoCD UI. With `expose_argocd_nodeport = true` (the default), the
-server is published on a NodePort, so browse directly to a node's public IP:
-
-```bash
-kubectl get nodes -o wide   # grab an EXTERNAL-IP
-# then open https://<node-ip>:30082 (HTTPS) or http://<node-ip>:30081 (HTTP)
-```
-
-Alternatively, use a port-forward without exposing anything publicly:
-
-```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:443
-```
-
-Then open https://localhost:8080 and log in as `admin`.
-
-## Public NodePort access
-
-The sample app in `guild-app/` is exposed via a `NodePort` Service on port
-`30080`. To make it reachable from the public internet, Terraform:
-
-- enables `node_public_ip_enabled` on the default node pool so each node gets a
-  public IP, and
-- adds an inbound rule to the AKS-managed node NSG allowing TCP on the NodePort.
-
-After apply, find a node's public IP and browse to it:
-
-```bash
-kubectl get nodes -o wide   # look at the EXTERNAL-IP column
-# then open http://<node-ip>:30080
+cd terraform
+bash deploy.sh
 ```
 
 The ArgoCD server is exposed the same way on ports `30081` (HTTP) and `30082`

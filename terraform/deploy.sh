@@ -111,8 +111,15 @@ function show_result() {
   ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
   NODE_IP_ADDRESS=$(kubectl get nodes -o jsonpath="{range .items[*]}{.status.addresses[?(@.type=='ExternalIP')].address}{'\\n'}{end}" | head -n 1)  
 
-  echo "ArgoCD initial admin password = ${ARGOCD_PASSWORD}"
-  echo "guild-app: browse to http://${NODE_IP_ADDRESS}:30080"
+  echo "ArgoCD"
+  echo "======"
+  echo "URL: https://${NODE_IP_ADDRESS}:30081"
+  echo "User-id = admin, password = ${ARGOCD_PASSWORD}"
+  echo ""
+  echo "Guild-app"
+  echo "========="
+  echo "First deploy the app via ArgoCD (Refresh button), then use the URL"
+  echo "URL: http://${NODE_IP_ADDRESS}:30080"
 
 }
 
