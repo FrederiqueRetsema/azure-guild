@@ -49,10 +49,10 @@ resource "kubernetes_manifest" "guild_app" {
         namespace = var.argocd_app_namespace
       }
       syncPolicy = {
-        automated = {
-          prune    = true
-          selfHeal = true
-        }
+        # automated = {
+        #   prune    = true
+        #   selfHeal = true
+        # }
         syncOptions = [
           "CreateNamespace=true",
         ]
