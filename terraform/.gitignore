@@ -1,0 +1,14 @@
+# Local Terraform state and working dirs
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Variable files may contain secrets (e.g. Azure SP credentials). Keep the
+# example checked in, but not the real tfvars.
+*.auto.tfvars
+
+# Crash logs
+crash.log
+crash.*.log
