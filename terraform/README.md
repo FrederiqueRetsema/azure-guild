@@ -22,35 +22,21 @@ Terraform authenticates to Azure through the Azure CLI session.
 
 ## Usage
 
+Deploy the AKS cluster including ArgoCD with the guild-app:
+
 ```bash
 # edit terraform.tfvars and set github_repo_url
 
 cd terraform
 bash deploy.sh
 ```
+This will also expose the URLs for ArgoCD and the demo app.
 
-The ArgoCD server is exposed the same way on ports `30081` (HTTP) and `30082`
-(HTTPS), controlled by `expose_argocd_nodeport`.
-
-To lock access down to your own IP, set
-`nodeport_source_address_prefix = "<your-ip>/32"` (it applies to both the app
-and ArgoCD rules). To disable public exposure entirely, set
-`expose_nodeport = false` and/or `expose_argocd_nodeport = false`.
-
-> Enabling node public IPs cycles the default node pool, so the first apply of
-> this change will recreate the nodes.
-
-## Crossplane
-
-Crossplane is installed from the official `crossplane-stable` Helm chart into
-the `crossplane-system` namespace (version `2.4.3`). It installs the Crossplane
-controllers and core CRDs; you then add providers (e.g. the Azure provider) and
-compositions on top. To disable it, set `install_crossplane = false`.
-
-Verify it is running:
+You can remove the AKS cluster via:
 
 ```bash
-kubectl get pods -n crossplane-system
+cd terraform
+bash cleanup.sh
 ```
 
 ### Azure provider
