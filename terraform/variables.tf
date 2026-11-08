@@ -137,7 +137,7 @@ variable "crossplane_azure_provider_version" {
 variable "crossplane_azure_service_providers" {
   description = "List of Upbound Azure service provider packages to install (short names, e.g. \"resources\", \"network\"). The provider-family package is always installed as their dependency."
   type        = list(string)
-  default     = ["resources", "network", "storage"]
+  default     = ["resources", "network", "storage", "dbformysql"]
 }
 
 variable "crossplane_azure_credentials_json" {

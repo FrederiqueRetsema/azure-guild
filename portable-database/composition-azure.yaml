@@ -1,0 +1,126 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: mysql-azure
+  labels:
+    cloud: azure
+spec:
+  compositeTypeRef:
+    apiVersion: db.azure-guild.io/v1alpha1
+    kind: MySQL
+  mode: Pipeline
+  pipeline:
+    - step: create-mysql-azure
+      functionRef:
+        name: crossplane-contrib-function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+
+          - name: flexible-server
+            base:
+              apiVersion: dbformysql.azure.upbound.io/v1beta2
+              kind: FlexibleServer
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  location: West Europe
+                  version: "8.0.21"
+                  skuName: B_Standard_B1ms
+                  administratorLogin: mysqladmin
+                  administratorPasswordSecretRef:
+                    name: azure-guild-mysql-admin
+                    namespace: crossplane-system
+                    key: password
+                  backupRetentionDays: 7
+                  storage:
+                    - sizeGb: 20
+                      autoGrowEnabled: true
+                writeConnectionSecretToRef:
+                  name: azure-guild-mysql-connection
+                  namespace: crossplane-system
+            patches:
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: metadata.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: metadata.annotations[crossplane.io/external-name]
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.resourceGroupName
+                toFieldPath: spec.forProvider.resourceGroupName
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.size
+                toFieldPath: spec.forProvider.skuName
+                transforms:
+                  - type: map
+                    map:
+                      XS: B_Standard_B1ms
+                      S: B_Standard_B2s
+                      M: GP_Standard_D2ds_v4
+                      L: GP_Standard_D4ds_v4
+                      XL: GP_Standard_D8ds_v4
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.secretName
+                toFieldPath: spec.forProvider.administratorPasswordSecretRef.name
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.id
+                toFieldPath: status.serverId
+
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Ready
+                  status: "True"
+
+          - name: firewall-rule-allow-azure
+            base:
+              apiVersion: dbformysql.azure.upbound.io/v1beta1
+              kind: FlexibleServerFirewallRule
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  startIpAddress: 0.0.0.0
+                  endIpAddress: 0.0.0.0
+            patches:
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: metadata.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.resourceGroupName
+                toFieldPath: spec.forProvider.resourceGroupName
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: spec.forProvider.serverNameRef.name
+
+          - name: flexible-database
+            base:
+              apiVersion: dbformysql.azure.upbound.io/v1beta1
+              kind: FlexibleDatabase
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  charset: utf8mb4
+                  collation: utf8mb4_unicode_ci
+            patches:
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-db"
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.resourceGroupName
+                toFieldPath: spec.forProvider.resourceGroupName
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: spec.forProvider.serverNameRef.name

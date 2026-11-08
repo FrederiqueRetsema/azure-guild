@@ -14,3 +14,7 @@ resource_group_name = "frederique-azure-guild"
 # github_repo_revision = "HEAD"
 # argocd_app_namespace = "default"
 # argocd_chart_version = "8.3.0"
+
+# Crossplane Azure service providers. Includes "dbformysql" so the MySQL
+# Flexible Server managed resources in ../crossplane-managed-resource work.
+# crossplane_azure_service_providers = ["resources", "network", "storage", "dbformysql"]

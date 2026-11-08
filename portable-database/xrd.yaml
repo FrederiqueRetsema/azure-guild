@@ -1,0 +1,77 @@
+# CompositeResourceDefinition for a portable MySQL database.
+#
+# The MySQL composite type abstracts away the cloud-specific managed
+# resources. It is backed by per-cloud compositions selected via
+# spec.compositionSelector:
+#   - azure: Upbound Azure MySQL FlexibleServer resources
+#   - aws:   Upbound AWS RDS Instance
+#
+# Both variants read the admin password from an externally-provided
+# Kubernetes secret (via the provider's password secret reference). That
+# secret lives OUTSIDE this composition.
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: mysqls.db.azure-guild.io
+spec:
+  scope: Namespaced
+  group: db.azure-guild.io
+  names:
+    kind: MySQL
+    plural: mysqls
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cloud:
+                  description: >-
+                    Target cloud provider for the database. Supported values
+                    are "azure" and "aws".
+                  type: string
+                  enum:
+                    - azure
+                    - aws
+                  default: azure
+                secretName:
+                  description: >-
+                    Name of the Kubernetes secret holding the database admin
+                    credentials. The secret itself lives outside this
+                    composition.
+                  type: string
+                resourceGroupName:
+                  description: >-
+                    Name of the Azure resource group to deploy into. Only
+                    used by the azure variant; ignored for aws.
+                  type: string
+                serverName:
+                  description: >-
+                    Name of the MySQL server / RDS instance to create.
+                  type: string
+                size:
+                  description: >-
+                    T-shirt size for the database. Translated into a
+                    cloud-specific SKU by the composition.
+                  type: string
+                  enum:
+                    - XS
+                    - S
+                    - M
+                    - L
+                    - XL
+                  default: XS
+              required:
+                - secretName
+                - serverName
+            status:
+              type: object
+              properties:
+                serverId:
+                  description: Resource ID of the provisioned MySQL server.
+                  type: string

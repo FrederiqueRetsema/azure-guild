@@ -2,6 +2,9 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: deployment-and-service
+  annotations:
+    # Apply the Composition after the XRD.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   compositeTypeRef:
     apiVersion: apps.azure-guild.io/v1alpha1
@@ -73,13 +76,13 @@ spec:
 
               - type: FromCompositeFieldPath
                 fromFieldPath: metadata.name
-                toFieldPath: metadata.labels[app.azure-guild.io/instance]
+                toFieldPath: metadata.labels[app]
               - type: FromCompositeFieldPath
                 fromFieldPath: metadata.name
-                toFieldPath: spec.selector.matchLabels[app.azure-guild.io/instance]
+                toFieldPath: spec.selector.matchLabels[app]
               - type: FromCompositeFieldPath
                 fromFieldPath: metadata.name
-                toFieldPath: spec.template.metadata.labels[app.azure-guild.io/instance]
+                toFieldPath: spec.template.metadata.labels[app]
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.replicas
                 toFieldPath: spec.replicas

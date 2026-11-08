@@ -2,7 +2,12 @@ apiVersion: apps.azure-guild.io/v1alpha1
 kind: DeploymentAndService
 metadata:
   name: guild-app
-  namespace: default
+  annotations:
+    # Apply the composite resource last, once the XRD's CRD is registered.
+    argocd.argoproj.io/sync-wave: "2"
+    # Skip the client dry-run so ArgoCD does not fail when the type is
+    # not yet registered in the cluster's API discovery.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   image: nginx:1.27-alpine
   replicas: 2

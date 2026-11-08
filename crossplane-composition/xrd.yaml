@@ -2,6 +2,9 @@ apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
   name: deploymentandservices.apps.azure-guild.io
+  annotations:
+    # Apply the XRD first and wait for it to be established.
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   scope: Namespaced
   group: apps.azure-guild.io

@@ -44,8 +44,10 @@ bash cleanup.sh
 With `install_crossplane_azure_provider = true` (default), Terraform installs
 the Upbound Azure family provider (`provider-family-azure`) plus the service
 packages listed in `crossplane_azure_service_providers` (default:
-`resources`, `network`, `storage`), all pinned to
-`crossplane_azure_provider_version` (default `v2.8.0`).
+`resources`, `network`, `storage`, `dbformysql`), all pinned to
+`crossplane_azure_provider_version` (default `v2.8.0`). The `dbformysql`
+package provides the CRDs used by the MySQL Flexible Server managed resources
+in [`../crossplane-managed-resource`](../crossplane-managed-resource).
 
 To let Crossplane authenticate to Azure, supply a service-principal credentials
 JSON. Generate it and pass it in via an environment variable so it never lands
@@ -81,6 +83,27 @@ kubectl get providers
 > 3. the full `terraform apply`
 >
 > If you run Terraform by hand, repeat those steps with `-target`.
+
+### MySQL Flexible Server (Crossplane managed resources)
+
+[`../crossplane-managed-resource/mysql-flexible-server.yaml`](../crossplane-managed-resource/mysql-flexible-server.yaml)
+defines an Azure Database for MySQL Flexible Server as Crossplane managed
+resources (a `FlexibleServer`, a `FlexibleServerFirewallRule`, a
+`FlexibleDatabase`, and the admin-password `Secret`). They use the
+cluster-scoped `dbformysql.azure.upbound.io` API group and the `default`
+`ProviderConfig`, so they rely on the `dbformysql` service provider being
+installed (included in the default `crossplane_azure_service_providers`).
+
+Once the providers are `Healthy`, apply the manifest:
+
+```bash
+kubectl apply -f ../crossplane-managed-resource/mysql-flexible-server.yaml
+kubectl get flexibleserver.dbformysql.azure.upbound.io guild-mysql
+```
+
+> Before applying, replace the demo password in the `Secret` and make sure the
+> server's `crossplane.io/external-name` is globally unique under
+> `.mysql.database.azure.com`.
 
 ## Notes
 

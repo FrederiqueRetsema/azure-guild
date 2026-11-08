@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-guild-mysql-admin
+  namespace: crossplane-system
+type: Opaque
+stringData:
+  password: "ChangeMe-Str0ng-P@ssw0rd!"
+---
+apiVersion: dbformysql.azure.upbound.io/v1beta2
+kind: FlexibleServer
+metadata:
+  name: azure-guild-mysql
+  annotations:
+    crossplane.io/external-name: azure-guild-mysql
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    resourceGroupName: frederique-azure-guild
+    location: West Europe
+    version: "8.0.21"
+    skuName: B_Standard_B1ms
+    administratorLogin: mysqladmin
+    administratorPasswordSecretRef:
+      name: azure-guild-mysql-admin
+      namespace: crossplane-system
+      key: password
+    backupRetentionDays: 7
+    storage:
+      - sizeGb: 20
+        autoGrowEnabled: true
+  writeConnectionSecretToRef:
+    name: azure-guild-mysql-connection
+    namespace: crossplane-system
+---
+apiVersion: dbformysql.azure.upbound.io/v1beta1
+kind: FlexibleServerFirewallRule
+metadata:
+  name: azure-guild-mysql-allow-azure
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    resourceGroupName: frederique-azure-guild
+    serverNameRef:
+      name: azure-guild-mysql
+    # 0.0.0.0-0.0.0.0 is the Azure special-case that allows other Azure
+    # services (not the public internet) to reach the server.
+    startIpAddress: 0.0.0.0
+    endIpAddress: 0.0.0.0
+---
+apiVersion: dbformysql.azure.upbound.io/v1beta1
+kind: FlexibleDatabase
+metadata:
+  name: azure-guild-mysql-db
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    resourceGroupName: frederique-azure-guild
+    serverNameRef:
+      name: azure-guild-mysql
+    charset: utf8mb4
+    collation: utf8mb4_unicode_ci

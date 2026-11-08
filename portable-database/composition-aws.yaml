@@ -1,0 +1,77 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: mysql-aws
+  labels:
+    cloud: aws
+spec:
+  compositeTypeRef:
+    apiVersion: db.azure-guild.io/v1alpha1
+    kind: MySQL
+  mode: Pipeline
+  pipeline:
+    - step: create-mysql-aws
+      functionRef:
+        name: crossplane-contrib-function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+
+          - name: rds-instance
+            base:
+              apiVersion: rds.aws.upbound.io/v1beta2
+              kind: Instance
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  region: eu-west-1
+                  engine: mysql
+                  engineVersion: "8.0"
+                  instanceClass: db.t3.micro
+                  allocatedStorage: 20
+                  maxAllocatedStorage: 100
+                  storageType: gp3
+                  username: mysqladmin
+                  masterPasswordSecretRef:
+                    namespace: crossplane-system
+                    name: azure-guild-mysql-admin
+                    key: password
+                  backupRetentionPeriod: 7
+                  skipFinalSnapshot: true
+                  publiclyAccessible: false
+                writeConnectionSecretToRef:
+                  name: azure-guild-mysql-connection
+                  namespace: crossplane-system
+            patches:
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: metadata.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serverName
+                toFieldPath: metadata.annotations[crossplane.io/external-name]
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.secretName
+                toFieldPath: spec.forProvider.masterPasswordSecretRef.name
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.size
+                toFieldPath: spec.forProvider.instanceClass
+                transforms:
+                  - type: map
+                    map:
+                      XS: db.t3.micro
+                      S: db.t3.small
+                      M: db.t3.medium
+                      L: db.m6g.large
+                      XL: db.m6g.xlarge
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.id
+                toFieldPath: status.serverId
+
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Ready
+                  status: "True"
