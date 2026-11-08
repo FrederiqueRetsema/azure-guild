@@ -11,10 +11,9 @@ stringData:
   password: "ChangeMe-Str0ng-P@ssw0rd!"
 ---
 apiVersion: db.azure-guild.io/v1alpha1
-kind: MySQL
+kind: MySQL2
 metadata:
   name: azure-guild-mysql-crossplane
-  namespace: crossplane-system
   annotations:
     # Create the composite resource only after the XRD's CRD is established
     # and the Compositions exist to be selected.
@@ -29,10 +28,9 @@ spec:
   size: XS
 ---
 apiVersion: db.azure-guild.io/v1alpha1
-kind: MySQL
+kind: MySQL2
 metadata:
   name: azure-guild-mysql-crossplane-aws
-  namespace: crossplane-system
   annotations:
     # Create the composite resource only after the XRD's CRD is established
     # and the Compositions exist to be selected.

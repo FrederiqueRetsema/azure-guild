@@ -12,7 +12,7 @@
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
-  name: mysqls.db.azure-guild.io
+  name: mysql2s.db.azure-guild.io
   annotations:
     # Apply the XRD first and wait for its CRD to be established.
     argocd.argoproj.io/sync-wave: "0"
@@ -20,8 +20,8 @@ spec:
   scope: Namespaced
   group: db.azure-guild.io
   names:
-    kind: MySQL
-    plural: mysqls
+    kind: MySQL2
+    plural: mysql2s
   versions:
     - name: v1alpha1
       served: true

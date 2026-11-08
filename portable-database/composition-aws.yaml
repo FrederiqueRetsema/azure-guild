@@ -10,7 +10,7 @@ metadata:
 spec:
   compositeTypeRef:
     apiVersion: db.azure-guild.io/v1alpha1
-    kind: MySQL
+    kind: MySQL2
   mode: Pipeline
   pipeline:
     - step: create-mysql-aws
