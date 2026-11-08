@@ -100,6 +100,14 @@ resource "kubernetes_manifest" "crossplane_managed_resource" {
           prune    = true
           selfHeal = true
         }
+        retry = {
+          limit = 5
+          backoff = {
+            duration    = "10s"
+            factor      = 2
+            maxDuration = "2m"
+          }
+        }
         syncOptions = [
           "CreateNamespace=true",
         ]

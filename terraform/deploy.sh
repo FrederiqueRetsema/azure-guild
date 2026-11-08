@@ -6,12 +6,21 @@
 #   - terraform >= 1.9
 #   - Azure CLI, logged in via `az login`
 #   - an active subscription selected (az account set --subscription <id>)
+#   - permission to create a service principal and assign the Contributor role
+#     on the subscription (needed to provision Crossplane Azure credentials)
 #
 # Usage:
 #   ./deploy.sh
 #
 # You must provide github_repo_url, either via a terraform.tfvars file or
 # the TF_VAR_github_repo_url environment variable.
+#
+# Azure credentials for the Crossplane Azure provider are created automatically:
+# the script provisions a service principal ("crossplane-azure-guild" by
+# default, override via CROSSPLANE_AZURE_SP_NAME) and feeds its SDK-auth JSON to
+# Terraform. To use your own service principal instead, export
+# TF_VAR_crossplane_azure_credentials_json before running and the script will
+# leave it untouched.
 
 function run_in_script_dir() {  
 
@@ -57,6 +66,88 @@ function prerequisite_checks() {
 
   SUBSCRIPTION_NAME="$(az account show --query name -o tsv)"
   echo "Using Azure subscription: ${SUBSCRIPTION_NAME}"
+
+}
+
+
+function prepare_azure_credentials() {
+
+  # The Crossplane Azure ProviderConfig reads its credentials from the
+  # "azure-secret" Secret, which Terraform populates from the
+  # crossplane_azure_credentials_json variable. If that variable is empty the
+  # Secret ends up empty and the provider fails to initialize with:
+  #   "cannot unmarshal Azure credentials as JSON: unexpected end of JSON input"
+  #
+  # To make the deploy always work, we create (or reset) a dedicated service
+  # principal here using the already logged-in az session and build the
+  # SDK-auth style JSON the Upbound Azure provider expects.
+  #
+  # If the caller already exported TF_VAR_crossplane_azure_credentials_json we
+  # leave it untouched so a custom service principal can be used.
+
+  if [ -n "${TF_VAR_crossplane_azure_credentials_json:-}" ]; then
+    echo "==> Azure credentials already provided via TF_VAR_crossplane_azure_credentials_json; skipping service principal creation"
+    return
+  fi
+
+  echo "==> Preparing Azure credentials for the Crossplane Azure provider"
+
+  local sp_name="${CROSSPLANE_AZURE_SP_NAME:-crossplane-azure-guild}"
+  local subscription_id tenant_id
+  subscription_id="$(az account show --query id -o tsv)"
+  tenant_id="$(az account show --query tenantId -o tsv)"
+
+  # --sdk-auth is deprecated, so we request only the raw secret fields and
+  # assemble the SDK-auth JSON ourselves below.
+  local client_id client_secret existing_id
+
+  # Look up the SP by its display name so re-runs reset the existing one
+  # instead of piling up a new service principal every deploy.
+  existing_id="$(az ad sp list --display-name "$sp_name" --query '[0].appId' -o tsv 2>/dev/null || true)"
+
+  if [ -n "$existing_id" ]; then
+    echo "    Reusing existing service principal '${sp_name}' and resetting its credential"
+    client_id="$existing_id"
+    # Ensure the role assignment exists (idempotent) in case it was removed.
+    az role assignment create \
+      --assignee "$client_id" \
+      --role "Contributor" \
+      --scope "/subscriptions/${subscription_id}" >/dev/null 2>&1 || true
+    client_secret="$(az ad sp credential reset \
+      --id "$client_id" \
+      --query password -o tsv)"
+  else
+    echo "    Creating service principal '${sp_name}' (Contributor on the subscription)"
+    client_id="$(az ad sp create-for-rbac \
+      --name "$sp_name" \
+      --role "Contributor" \
+      --scopes "/subscriptions/${subscription_id}" \
+      --query appId -o tsv)"
+    client_secret="$(az ad sp credential reset \
+      --id "$client_id" \
+      --query password -o tsv)"
+  fi
+
+  # Assemble the SDK-auth JSON the Upbound Azure provider expects. Written with
+  # a heredoc so there is no fragile string interpolation of quotes.
+  TF_VAR_crossplane_azure_credentials_json="$(cat <<JSON
+{
+  "clientId": "${client_id}",
+  "clientSecret": "${client_secret}",
+  "subscriptionId": "${subscription_id}",
+  "tenantId": "${tenant_id}",
+  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+  "resourceManagerEndpointUrl": "https://management.azure.com/",
+  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+  "galleryEndpointUrl": "https://gallery.azure.com/",
+  "managementEndpointUrl": "https://management.core.windows.net/"
+}
+JSON
+)"
+  export TF_VAR_crossplane_azure_credentials_json
+
+  echo "    Azure credentials prepared and exported to Terraform."
 
 }
 
@@ -167,6 +258,7 @@ set -euo pipefail
 
 run_in_script_dir
 prerequisite_checks
+prepare_azure_credentials
 determine_public_ip
 terraform_init
 terraform_deploy_k8s_cluster
