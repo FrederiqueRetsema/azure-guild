@@ -1,16 +1,3 @@
-# Crossplane Azure provider scaffolding.
-#
-# This installs the Upbound Azure family provider plus a configurable set of
-# service providers (resources, network, storage, ...), and wires in Azure
-# service-principal credentials through a Secret + ProviderConfig so Crossplane
-# can manage Azure resources via the Kubernetes API.
-#
-# Everything here is gated on install_crossplane_azure_provider (and the core
-# install_crossplane). The credentials Secret and ProviderConfig are only
-# created when crossplane_azure_credentials_json is non-empty.
-
-# The Azure family provider. Service providers depend on this package; we also
-# install it explicitly so its ProviderConfig CRDs (azure.upbound.io) appear.
 resource "kubernetes_manifest" "crossplane_provider_family_azure" {
   manifest = {
     apiVersion = "pkg.crossplane.io/v1"
@@ -81,5 +68,7 @@ resource "kubernetes_manifest" "crossplane_azure_providerconfig" {
   depends_on = [
     kubernetes_manifest.crossplane_provider_family_azure,
     kubernetes_secret.crossplane_azure_creds,
+    kubernetes_manifest.crossplane_managed_resource,
+    kubernetes_manifest.portable_database,
   ]
 }

@@ -9,15 +9,6 @@ resource "helm_release" "argocd" {
 
   wait = true
 
-  # Register custom health checks so ArgoCD does not block forever on
-  # Crossplane config objects that never report a runtime health condition.
-  #
-  # A (Cluster)ProviderConfig is a passive object: Crossplane only writes
-  # status.users to it and never a Ready/Healthy condition. Because it sits in
-  # sync-wave 0, ArgoCD waits for it to become Healthy before applying wave 1
-  # (the Compositions) and wave 2 (the MySQL2 composites) -- a deadlock that
-  # leaves the app Progressing indefinitely. Treating these objects as Healthy
-  # immediately lets the sync proceed.
   values = [
     yamlencode({
       configs = {
@@ -32,6 +23,17 @@ resource "helm_release" "argocd" {
             hs = {}
             hs.status = "Healthy"
             hs.message = "ProviderConfig has no runtime health; treated as Healthy"
+            return hs
+          EOT
+          # CompositionRevisions are immutable, auto-generated snapshots that
+          # Crossplane creates for every Composition change. They have no
+          # runtime health condition, so ArgoCD leaves them Progressing forever
+          # (shown as a spinner under each Composition in the tree). Treat them
+          # as Healthy so the app can reach a fully synced/healthy state.
+          "resource.customizations.health.apiextensions.crossplane.io_CompositionRevision" = <<-EOT
+            hs = {}
+            hs.status = "Healthy"
+            hs.message = "CompositionRevision is an immutable snapshot; treated as Healthy"
             return hs
           EOT
         }

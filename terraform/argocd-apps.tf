@@ -18,10 +18,6 @@ resource "kubernetes_manifest" "guild_app" {
         namespace = var.argocd_app_namespace
       }
       syncPolicy = {
-        # automated = {
-        #   prune    = true
-        #   selfHeal = true
-        # }
         syncOptions = [
           "CreateNamespace=true",
         ]
@@ -56,8 +52,6 @@ resource "kubernetes_manifest" "crossplane_composition" {
           prune    = true
           selfHeal = true
         }
-        # Retry so the composite resource converges once the XRD's CRD is
-        # registered, even if the first sync pass loses the race.
         retry = {
           limit = 5
           backoff = {
@@ -83,6 +77,9 @@ resource "kubernetes_manifest" "crossplane_managed_resource" {
     metadata = {
       name      = "crossplane-managed-resource"
       namespace = var.argocd_namespace
+      finalizers = [
+        "resources-finalizer.argocd.argoproj.io",
+      ]
     }
     spec = {
       project = "default"
@@ -126,6 +123,9 @@ resource "kubernetes_manifest" "portable_database" {
     metadata = {
       name      = "portable-database"
       namespace = var.argocd_namespace
+      finalizers = [
+        "resources-finalizer.argocd.argoproj.io",
+      ]
     }
     spec = {
       project = "default"
@@ -143,8 +143,6 @@ resource "kubernetes_manifest" "portable_database" {
           prune    = true
           selfHeal = true
         }
-        # Retry so the composite resources converge once the XRD's CRD is
-        # registered, even if the first sync pass loses the race.
         retry = {
           limit = 5
           backoff = {
