@@ -28,8 +28,8 @@ spec:
       key: password
     backupRetentionDays: 7
     storage:
-      - sizeGb: 20
-        autoGrowEnabled: true
+      sizeGb: 20
+      autoGrowEnabled: true
   writeConnectionSecretToRef:
     name: azure-guild-mysql-connection
     namespace: crossplane-system
