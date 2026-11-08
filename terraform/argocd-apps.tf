@@ -136,7 +136,7 @@ resource "kubernetes_manifest" "portable_database" {
       }
       destination = {
         server    = "https://kubernetes.default.svc"
-        namespace = var.argocd_app_namespace
+        namespace = "portable-database"
       }
       syncPolicy = {
         automated = {
