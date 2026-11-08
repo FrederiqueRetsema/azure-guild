@@ -15,6 +15,7 @@ spec:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources
         resources:
+
           - name: deployment
             base:
               apiVersion: apps/v1
@@ -63,6 +64,7 @@ spec:
                 matchCondition:
                   type: Available
                   status: "True"
+
           - name: service
             base:
               apiVersion: v1
@@ -88,9 +90,6 @@ spec:
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.serviceType
                 toFieldPath: spec.type
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.servicePort
-                toFieldPath: spec.ports[0].port
               - type: FromCompositeFieldPath
                 fromFieldPath: spec.nodePort
                 toFieldPath: spec.ports[0].nodePort
