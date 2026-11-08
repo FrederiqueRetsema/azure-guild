@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: azure-guild-mysql-admin
+  name: azure-guild-mysql-admin-portable-database
   namespace: crossplane-system
 type: Opaque
 stringData:
@@ -16,7 +16,7 @@ spec:
   compositionSelector:
     matchLabels:
       cloud: azure
-  secretName: azure-guild-mysql-admin
+  secretName: azure-guild-mysql-admin-portable-database
   resourceGroupName: frederique-azure-guild
   serverName: azure-guild-mysql-crossplane
   size: XS
@@ -30,6 +30,6 @@ spec:
   compositionSelector:
     matchLabels:
       cloud: aws
-  secretName: azure-guild-mysql-admin
+  secretName: azure-guild-mysql-admin-portable-database
   serverName: azure-guild-mysql-crossplane
   size: XS

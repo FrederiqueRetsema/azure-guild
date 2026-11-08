@@ -12,7 +12,7 @@ spec:
   pipeline:
     - step: create-mysql-azure
       functionRef:
-        name: crossplane-contrib-function-patch-and-transform
+        name: crossplane-contrib-function-patch-and-transform-portable-database
       input:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources
