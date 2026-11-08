@@ -21,7 +21,7 @@ locals {
 
 # Allow inbound traffic to the app NodePort from the configured source.
 resource "azurerm_network_security_rule" "nodeport" {
-  name                        = "allow-nodeport-${var.nodeport}"
+  name                        = "allow-nodeport-${var.guildapp_nodeport_http}"
   resource_group_name         = azurerm_kubernetes_cluster.this.node_resource_group
   network_security_group_name = local.aks_node_nsg_name
 
@@ -30,7 +30,7 @@ resource "azurerm_network_security_rule" "nodeport" {
   access                     = "Allow"
   protocol                   = "Tcp"
   source_port_range          = "*"
-  destination_port_range     = tostring(var.nodeport)
+  destination_port_range     = tostring(var.guildapp_nodeport_http)
   source_address_prefix      = var.nodeport_source_address_prefix
   destination_address_prefix = "*"
 }

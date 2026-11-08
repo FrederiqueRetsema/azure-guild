@@ -1,0 +1,22 @@
+# Example DeploymentAndService XR running WordPress.
+#
+# Creating this makes Crossplane compose a Deployment and a NodePort Service.
+# WordPress listens on port 80 inside the container.
+#
+# Note: WordPress needs a MySQL/MariaDB database to finish setup. This XR only
+# composes the WordPress Deployment + Service; point WordPress at a database by
+# running one in the cluster (or use a managed database) and configuring it
+# through the WordPress install wizard, or extend the composition to inject
+# WORDPRESS_DB_* environment variables.
+apiVersion: apps.azure-guild.io/v1alpha1
+kind: DeploymentAndService
+metadata:
+  name: wordpress
+  namespace: default
+spec:
+  image: wordpress:6.7-apache
+  replicas: 2
+  containerPort: 80
+  servicePort: 80
+  serviceType: NodePort
+  nodePort: 30083

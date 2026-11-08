@@ -50,8 +50,45 @@ function prerequisite_checks() {
     exit 1
   fi
 
+  command -v curl >/dev/null 2>&1 || {
+    echo "ERROR: curl is not installed or not on PATH (needed to detect the public IP)." >&2
+    exit 1
+  }
+
   SUBSCRIPTION_NAME="$(az account show --query name -o tsv)"
   echo "Using Azure subscription: ${SUBSCRIPTION_NAME}"
+
+}
+
+
+function determine_public_ip() {
+
+  echo "==> Determining the public IP address of this machine"
+
+  # Try a few well-known endpoints so we are not dependent on a single service.
+  local ip=""
+  for url in "https://api.ipify.org" "https://ifconfig.me/ip" "https://checkip.amazonaws.com"; do
+    ip="$(curl -fsS --max-time 10 "$url" 2>/dev/null | tr -d '[:space:]')"
+    if [ -n "$ip" ]; then
+      break
+    fi
+  done
+
+  if [ -z "$ip" ]; then
+    echo "ERROR: Could not determine the public IP address of this machine." >&2
+    exit 1
+  fi
+
+  # Basic sanity check that this looks like an IPv4 address.
+  if ! echo "$ip" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+    echo "ERROR: Detected value '${ip}' does not look like a valid IPv4 address." >&2
+    exit 1
+  fi
+
+  # Export as /32 so only this machine is allowed to reach the NodePort.
+  export TF_VAR_nodeport_source_address_prefix="${ip}/32"
+  echo "Public IP detected: ${ip}"
+  echo "Restricting NodePort source address prefix to: ${TF_VAR_nodeport_source_address_prefix}"
 
 }
 
@@ -119,7 +156,7 @@ function show_result() {
   echo "Guild-app"
   echo "========="
   echo "First deploy the app via ArgoCD (Refresh button), then use the URL"
-  echo "URL: http://${NODE_IP_ADDRESS}:30080"
+  echo "URL: http://${NODE_IP_ADDRESS}:30082"
 
 }
 
@@ -130,6 +167,7 @@ set -euo pipefail
 
 run_in_script_dir
 prerequisite_checks
+determine_public_ip
 terraform_init
 terraform_deploy_k8s_cluster
 terraform_deploy_crossplane_azure_family_provider

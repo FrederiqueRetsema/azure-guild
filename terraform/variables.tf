@@ -82,22 +82,16 @@ variable "github_repo_revision" {
   default     = "HEAD"
 }
 
-variable "github_repo_path" {
-  description = "Path within the repository that contains the Kubernetes/Helm manifests."
-  type        = string
-  default     = "guild-app"
-}
-
 variable "argocd_app_namespace" {
   description = "Destination namespace in the cluster where the ArgoCD Application deploys resources."
   type        = string
   default     = "default"
 }
 
-variable "nodeport" {
+variable "guildapp_nodeport_http" {
   description = "NodePort to expose to the public internet (must match the Kubernetes Service nodePort)."
   type        = number
-  default     = 30080
+  default     = 30082
 }
 
 variable "nodeport_source_address_prefix" {
@@ -111,13 +105,13 @@ variable "nodeport_source_address_prefix" {
 variable "argocd_nodeport_http" {
   description = "NodePort for the ArgoCD server HTTP port."
   type        = number
-  default     = 30081
+  default     = 30080
 }
 
 variable "argocd_nodeport_https" {
   description = "NodePort for the ArgoCD server HTTPS port."
   type        = number
-  default     = 30082
+  default     = 30081
 }
 
 variable "crossplane_namespace" {

@@ -1,7 +1,3 @@
-# Exposes the hello pod to the public internet via a NodePort.
-# The node port 30080 is reachable on every cluster node's external IP,
-# so make sure the AKS node security group / network allows inbound traffic
-# on that port (and on the node's public IP, if any).
 apiVersion: v1
 kind: Service
 metadata:
@@ -17,4 +13,4 @@ spec:
       protocol: TCP
       port: 80
       targetPort: http
-      nodePort: 30080
+      nodePort: 30082

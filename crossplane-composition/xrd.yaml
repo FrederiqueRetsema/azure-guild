@@ -1,0 +1,71 @@
+# CompositeResourceDefinition (XRD): defines the DeploymentAndService custom API.
+#
+# A generic API that packages a Deployment plus a Service behind one resource.
+#
+# Crossplane v2 composite resources are namespaced by default and can compose
+# native Kubernetes resources (Deployment, Service) directly, so no
+# provider-kubernetes Object wrapper is needed.
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: deploymentandservices.apps.azure-guild.io
+spec:
+  scope: Namespaced
+  group: apps.azure-guild.io
+  names:
+    kind: DeploymentAndService
+    plural: deploymentandservices
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                image:
+                  description: Container image the Deployment runs.
+                  type: string
+                replicas:
+                  description: Number of Deployment replicas.
+                  type: integer
+                  default: 2
+                  minimum: 1
+                containerPort:
+                  description: Port the container listens on.
+                  type: integer
+                  default: 80
+                servicePort:
+                  description: Port the Service exposes inside the cluster.
+                  type: integer
+                  default: 80
+                serviceType:
+                  description: Kubernetes Service type.
+                  type: string
+                  default: NodePort
+                  enum:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
+                nodePort:
+                  description: >-
+                    NodePort to expose when serviceType is NodePort. Must be in
+                    the 30000-32767 range.
+                  type: integer
+                  default: 30080
+                  minimum: 30000
+                  maximum: 32767
+              required:
+                - image
+            status:
+              type: object
+              properties:
+                availableReplicas:
+                  description: Number of available replicas reported by the Deployment.
+                  type: integer
+                clusterIP:
+                  description: ClusterIP assigned to the Service.
+                  type: string

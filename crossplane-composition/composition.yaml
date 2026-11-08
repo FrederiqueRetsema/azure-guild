@@ -1,0 +1,104 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: deployment-and-service
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: DeploymentAndService
+  mode: Pipeline
+  pipeline:
+    - step: create-deployment-and-service
+      functionRef:
+        name: crossplane-contrib-function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: deployment
+            base:
+              apiVersion: apps/v1
+              kind: Deployment
+              spec:
+                selector:
+                  matchLabels:
+                    app.azure-guild.io/instance: placeholder
+                template:
+                  metadata:
+                    labels:
+                      app.azure-guild.io/instance: placeholder
+                  spec:
+                    containers:
+                      - name: app
+                        image: placeholder
+                        ports:
+                          - name: http
+                            containerPort: 80
+            patches:
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.labels[app.azure-guild.io/instance]
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.selector.matchLabels[app.azure-guild.io/instance]
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.template.metadata.labels[app.azure-guild.io/instance]
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.replicas
+                toFieldPath: spec.replicas
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.image
+                toFieldPath: spec.template.spec.containers[0].image
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.containerPort
+                toFieldPath: spec.template.spec.containers[0].ports[0].containerPort
+
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.availableReplicas
+                toFieldPath: status.availableReplicas
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Available
+                  status: "True"
+          - name: service
+            base:
+              apiVersion: v1
+              kind: Service
+              spec:
+                type: NodePort
+                selector:
+                  app.azure-guild.io/instance: placeholder
+                ports:
+                  - name: http
+                    protocol: TCP
+                    port: 80
+                    targetPort: http
+                    nodePort: 30080
+            patches:
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.labels[app.azure-guild.io/instance]
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.selector[app.azure-guild.io/instance]
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.serviceType
+                toFieldPath: spec.type
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.servicePort
+                toFieldPath: spec.ports[0].port
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.nodePort
+                toFieldPath: spec.ports[0].nodePort
+
+              - type: ToCompositeFieldPath
+                fromFieldPath: spec.clusterIP
+                toFieldPath: status.clusterIP
+
+            readinessChecks:
+              - type: NonEmpty
+                fieldPath: spec.clusterIP

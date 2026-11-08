@@ -1,8 +1,8 @@
 # Copy to terraform.tfvars and adjust as needed.
 
 # Required
-github_repo_url = "https://github.com/FrederiqueRetsema/azure-guild.git"
-resource_group_name  = "frederique-azure-guild"
+github_repo_url     = "https://github.com/FrederiqueRetsema/azure-guild.git"
+resource_group_name = "frederique-azure-guild"
 
 # Optional overrides (defaults shown).
 # location             = "westeurope"
@@ -12,6 +12,5 @@ resource_group_name  = "frederique-azure-guild"
 # kubernetes_version   = null
 
 # github_repo_revision = "HEAD"
-# github_repo_path     = "guild-app"
 # argocd_app_namespace = "default"
 # argocd_chart_version = "8.3.0"
