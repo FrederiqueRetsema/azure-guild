@@ -1,11 +1,10 @@
 apiVersion: apps.azure-guild.io/v1alpha1
 kind: DeploymentAndService
 metadata:
-  name: wordpress
+  name: guild-app
   namespace: default
 spec:
-  image: wordpress
+  image: nginx:1.27-alpine
   replicas: 2
   containerPort: 80
-  serviceType: NodePort
   nodePort: 30083

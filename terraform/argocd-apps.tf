@@ -37,7 +37,7 @@ resource "kubernetes_manifest" "crossplane_composition" {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "Application"
     metadata = {
-      name      = var.argocd_app_name
+      name      = "crossplane-composition"
       namespace = var.argocd_namespace
     }
     spec = {

@@ -31,18 +31,9 @@ spec:
                   description: Port the container listens on.
                   type: integer
                   default: 80
-                serviceType:
-                  description: Kubernetes Service type.
-                  type: string
-                  default: NodePort
-                  enum:
-                    - ClusterIP
-                    - NodePort
-                    - LoadBalancer
                 nodePort:
                   description: >-
-                    NodePort to expose when serviceType is NodePort. Must be in
-                    the 30000-32767 range.
+                    NodePort to expose. Must be in the 30000-32767 range.
                   type: integer
                   default: 30080
                   minimum: 30000

@@ -1,0 +1,70 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="Bquuhoci_CmKFh5DSaTw">
+    <mxGraphModel dx="1030" dy="626" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="4681" background="light-dark(#060606,#121212)" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-10" edge="1" parent="1" source="Oh-nzg8yooWsPhGvHt85-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;strokeColor=#FFFFFF;strokeWidth=3;" target="Oh-nzg8yooWsPhGvHt85-7">
+          <mxGeometry relative="1" x="-0.1579" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-11" edge="1" parent="1" source="Oh-nzg8yooWsPhGvHt85-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;strokeColor=#FFFFFF;strokeWidth=3;" target="Oh-nzg8yooWsPhGvHt85-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#66FFB3;" value="service" vertex="1">
+          <mxGeometry height="60" width="120" x="378" y="251" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-4" edge="1" parent="1" source="Oh-nzg8yooWsPhGvHt85-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.875;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;strokeColor=#FFFFFF;strokeWidth=3;" target="Oh-nzg8yooWsPhGvHt85-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-3" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;perimeter=cloudPerimeter;" value="" vertex="1">
+          <mxGeometry height="80" width="120" x="159" y="241" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-5" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="Port 30082" vertex="1">
+          <mxGeometry height="30" width="60" x="285" y="291" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFF33;" value="Pod" vertex="1">
+          <mxGeometry height="60" width="120" x="551" y="191" as="geometry" />
+        </mxCell>
+        <mxCell id="zx12VfYGP6a9ZV58l16N-5" edge="1" parent="1" source="Oh-nzg8yooWsPhGvHt85-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;strokeColor=#FFFFFF;strokeWidth=3;" target="zx12VfYGP6a9ZV58l16N-3">
+          <mxGeometry relative="1" x="0.1049" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFF33;" value="Pod" vertex="1">
+          <mxGeometry height="60" width="120" x="551" y="308" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-8" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="label app: guild-app&lt;div&gt;&lt;div style=&quot;&quot;&gt;Image:&amp;nbsp;&lt;span style=&quot;background-color: rgb(33, 29, 37); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;nginx:1.27-alpine&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(33, 29, 37); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="112" x="551" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-22" edge="1" parent="1" source="zx12VfYGP6a9ZV58l16N-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="818" y="311" as="sourcePoint" />
+            <mxPoint x="917.5" y="321.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-15" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="port: 80" vertex="1">
+          <mxGeometry height="30" width="60" x="486" y="187" as="geometry" />
+        </mxCell>
+        <mxCell id="Oh-nzg8yooWsPhGvHt85-18" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="port: 80" vertex="1">
+          <mxGeometry height="30" width="60" x="486" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="zx12VfYGP6a9ZV58l16N-2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="label app: guild-app&lt;div&gt;&lt;div style=&quot;&quot;&gt;Image:&amp;nbsp;&lt;span style=&quot;background-color: rgb(33, 29, 37); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;nginx:1.27-alpine&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: rgb(33, 29, 37); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; white-space: pre;&quot;&gt;&lt;br&gt;&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="112" x="551" y="384" as="geometry" />
+        </mxCell>
+        <mxCell id="zx12VfYGP6a9ZV58l16N-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFCC99;" value="ConfigMap" vertex="1">
+          <mxGeometry height="60" width="120" x="769" y="248" as="geometry" />
+        </mxCell>
+        <mxCell id="zx12VfYGP6a9ZV58l16N-4" edge="1" parent="1" source="Oh-nzg8yooWsPhGvHt85-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.002;entryY=0.373;entryDx=0;entryDy=0;entryPerimeter=0;defaultLabelBackgroundColor=page;strokeColor=#FFFFFF;strokeWidth=3;" target="zx12VfYGP6a9ZV58l16N-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="zx12VfYGP6a9ZV58l16N-7" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;defaultLabelBackgroundColor=page;" target="zx12VfYGP6a9ZV58l16N-6" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="818" y="311" as="sourcePoint" />
+            <mxPoint x="917.5" y="321.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="zx12VfYGP6a9ZV58l16N-6" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="&quot;Hello, Azure Guild!&quot;" vertex="1">
+          <mxGeometry height="30" width="132" x="763" y="314" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

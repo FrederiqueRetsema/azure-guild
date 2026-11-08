@@ -1,11 +1,9 @@
-# Simple pods that serves a static "Hello, Azure Guild!" web page.
-# nginx serves the index.html provided by the ConfigMap below.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: hello-page
+  name: guild-app-page
   labels:
-    app: hello
+    app: guild-app
 data:
   index.html: |
     <!DOCTYPE html>
@@ -22,18 +20,18 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello
+  name: guild-app
   labels:
-    app: hello
+    app: guild-app         # ook de deployment krijgt label app: guild-app (gebruikelijk, maar niet verplicht)
 spec:
-  replicas: 2
+  replicas: 2          # zorg ervoor dat er 2 pods gaan draaien
   selector:
     matchLabels:
-      app: hello
+      app: guild-app       # pods die al draaien
   template:
     metadata:
       labels:
-        app: hello
+        app: guild-app     # nieuw aan te maken pods moeten label app: guild-app krijgen
     spec:
       containers:
         - name: nginx
@@ -42,10 +40,10 @@ spec:
             - name: http
               containerPort: 80
           volumeMounts:
-            - name: hello-page
+            - name: guild-app-page
               mountPath: /usr/share/nginx/html
               readOnly: true
       volumes:
-        - name: hello-page
-          configMap:
-            name: hello-page
+        - name: guild-app-page
+          configMap:                # Koppelt de configMap (hierboven) aan de inhoud van de pod
+            name: guild-app-page
