@@ -3,6 +3,9 @@ kind: Secret
 metadata:
   name: azure-guild-mysql-admin-portable-database
   namespace: crossplane-system
+  annotations:
+    # Admin credentials must exist before the composite resources are created.
+    argocd.argoproj.io/sync-wave: "0"
 type: Opaque
 stringData:
   password: "ChangeMe-Str0ng-P@ssw0rd!"
@@ -12,6 +15,10 @@ kind: MySQL
 metadata:
   name: azure-guild-mysql-crossplane
   namespace: crossplane-system
+  annotations:
+    # Create the composite resource only after the XRD's CRD is established
+    # and the Compositions exist to be selected.
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   compositionSelector:
     matchLabels:
@@ -26,6 +33,10 @@ kind: MySQL
 metadata:
   name: azure-guild-mysql-crossplane-aws
   namespace: crossplane-system
+  annotations:
+    # Create the composite resource only after the XRD's CRD is established
+    # and the Compositions exist to be selected.
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   compositionSelector:
     matchLabels:

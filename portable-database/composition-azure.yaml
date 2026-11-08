@@ -4,6 +4,9 @@ metadata:
   name: mysql-azure
   labels:
     cloud: azure
+  annotations:
+    # Apply the Composition after the XRD and Function.
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   compositeTypeRef:
     apiVersion: db.azure-guild.io/v1alpha1

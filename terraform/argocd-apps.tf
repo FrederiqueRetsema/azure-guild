@@ -143,6 +143,16 @@ resource "kubernetes_manifest" "portable_database" {
           prune    = true
           selfHeal = true
         }
+        # Retry so the composite resources converge once the XRD's CRD is
+        # registered, even if the first sync pass loses the race.
+        retry = {
+          limit = 5
+          backoff = {
+            duration    = "10s"
+            factor      = 2
+            maxDuration = "2m"
+          }
+        }
         syncOptions = [
           "CreateNamespace=true",
         ]
