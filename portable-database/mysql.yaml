@@ -25,19 +25,19 @@ spec:
   resourceGroupName: frederique-azure-guild
   serverName: azure-guild-mysql-crossplane
   size: XS
----
-apiVersion: db.azure-guild.io/v1alpha1
-kind: MySQL2
-metadata:
-  name: azure-guild-mysql-crossplane-aws
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-spec:
-  crossplane:
-    compositionSelector:
-      matchLabels:
-        cloud: aws
-  secretName: azure-guild-mysql-admin-portable-database
-  serverName: azure-guild-mysql-crossplane
-  size: XS
+#---
+# apiVersion: db.azure-guild.io/v1alpha1
+# kind: MySQL2
+# metadata:
+#   name: azure-guild-mysql-crossplane-aws
+#   annotations:
+#     argocd.argoproj.io/sync-wave: "2"
+#     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+# spec:
+#   crossplane:
+#     compositionSelector:
+#       matchLabels:
+#         cloud: aws
+#   secretName: azure-guild-mysql-admin-portable-database
+#   serverName: azure-guild-mysql-crossplane
+#   size: XS
