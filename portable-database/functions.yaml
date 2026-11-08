@@ -1,9 +1,0 @@
-apiVersion: pkg.crossplane.io/v1
-kind: Function
-metadata:
-  name: crossplane-contrib-function-patch-and-transform-portable-database
-  annotations:
-    # Install the function before the Compositions that reference it.
-    argocd.argoproj.io/sync-wave: "0"
-spec:
-  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2

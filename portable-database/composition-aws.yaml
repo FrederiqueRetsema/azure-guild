@@ -5,7 +5,6 @@ metadata:
   labels:
     cloud: aws
   annotations:
-    # Apply the Composition after the XRD and Function.
     argocd.argoproj.io/sync-wave: "1"
 spec:
   compositeTypeRef:
@@ -15,7 +14,7 @@ spec:
   pipeline:
     - step: create-mysql-aws
       functionRef:
-        name: crossplane-contrib-function-patch-and-transform-portable-database
+        name: crossplane-contrib-function-patch-and-transform
       input:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources

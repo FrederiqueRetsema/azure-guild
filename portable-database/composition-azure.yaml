@@ -5,7 +5,6 @@ metadata:
   labels:
     cloud: azure
   annotations:
-    # Apply the Composition after the XRD and Function.
     argocd.argoproj.io/sync-wave: "1"
 spec:
   compositeTypeRef:
@@ -15,7 +14,7 @@ spec:
   pipeline:
     - step: create-mysql-azure
       functionRef:
-        name: crossplane-contrib-function-patch-and-transform-portable-database
+        name: crossplane-contrib-function-patch-and-transform
       input:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources
@@ -23,10 +22,11 @@ spec:
 
           - name: flexible-server
             base:
-              apiVersion: dbformysql.azure.upbound.io/v1beta2
+              apiVersion: dbformysql.azure.m.upbound.io/v1beta1
               kind: FlexibleServer
               spec:
                 providerConfigRef:
+                  kind: ClusterProviderConfig
                   name: default
                 forProvider:
                   location: West Europe
@@ -34,16 +34,14 @@ spec:
                   skuName: B_Standard_B1ms
                   administratorLogin: mysqladmin
                   administratorPasswordSecretRef:
-                    name: azure-guild-mysql-admin
-                    namespace: crossplane-system
+                    name: azure-guild-mysql-admin-portable-database
                     key: password
                   backupRetentionDays: 7
                   storage:
-                    - sizeGb: 20
-                      autoGrowEnabled: true
+                    sizeGb: 20
+                    autoGrowEnabled: true
                 writeConnectionSecretToRef:
                   name: azure-guild-mysql-connection
-                  namespace: crossplane-system
             patches:
 
               - type: FromCompositeFieldPath
@@ -81,10 +79,11 @@ spec:
 
           - name: firewall-rule-allow-azure
             base:
-              apiVersion: dbformysql.azure.upbound.io/v1beta1
+              apiVersion: dbformysql.azure.m.upbound.io/v1beta1
               kind: FlexibleServerFirewallRule
               spec:
                 providerConfigRef:
+                  kind: ClusterProviderConfig
                   name: default
                 forProvider:
                   startIpAddress: 0.0.0.0
@@ -103,10 +102,11 @@ spec:
 
           - name: flexible-database
             base:
-              apiVersion: dbformysql.azure.upbound.io/v1beta1
+              apiVersion: dbformysql.azure.m.upbound.io/v1beta1
               kind: FlexibleDatabase
               spec:
                 providerConfigRef:
+                  kind: ClusterProviderConfig
                   name: default
                 forProvider:
                   charset: utf8mb4

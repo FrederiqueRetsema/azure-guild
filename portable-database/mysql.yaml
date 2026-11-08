@@ -2,9 +2,8 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: azure-guild-mysql-admin-portable-database
-  namespace: crossplane-system
+  namespace: portable-database
   annotations:
-    # Admin credentials must exist before the composite resources are created.
     argocd.argoproj.io/sync-wave: "0"
 type: Opaque
 stringData:
@@ -15,13 +14,13 @@ kind: MySQL2
 metadata:
   name: azure-guild-mysql-crossplane
   annotations:
-    # Create the composite resource only after the XRD's CRD is established
-    # and the Compositions exist to be selected.
     argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  compositionSelector:
-    matchLabels:
-      cloud: azure
+  crossplane:
+    compositionSelector:
+      matchLabels:
+        cloud: azure
   secretName: azure-guild-mysql-admin-portable-database
   resourceGroupName: frederique-azure-guild
   serverName: azure-guild-mysql-crossplane
@@ -32,13 +31,13 @@ kind: MySQL2
 metadata:
   name: azure-guild-mysql-crossplane-aws
   annotations:
-    # Create the composite resource only after the XRD's CRD is established
-    # and the Compositions exist to be selected.
     argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  compositionSelector:
-    matchLabels:
-      cloud: aws
+  crossplane:
+    compositionSelector:
+      matchLabels:
+        cloud: aws
   secretName: azure-guild-mysql-admin-portable-database
   serverName: azure-guild-mysql-crossplane
   size: XS
