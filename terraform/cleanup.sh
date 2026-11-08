@@ -42,6 +42,23 @@ function prerequisite_checks() {
 }
 
 
+function delete_kind_if_present() {
+
+  # Delete all objects of a resource kind, but only if that CRD/type is
+  # currently served by the API. Silently no-ops for unknown types so the
+  # script does not emit "server doesn't have a resource type" errors (or trip
+  # `set -e`) when ArgoCD's cascade already removed the CRD.
+  local kind="$1"
+  shift
+
+  if ! kubectl get "$kind" "$@" --no-headers >/dev/null 2>&1; then
+    return 0
+  fi
+
+  kubectl delete "$kind" --all "$@" --ignore-not-found --timeout=15m || true
+}
+
+
 function crossplane_predestroy_cleanup() {
 
   # Crossplane-managed Azure resources (the MySQL Flexible Servers, firewall
@@ -94,11 +111,14 @@ function crossplane_predestroy_cleanup() {
 
   echo "==> Deleting Crossplane composite/managed MySQL resources directly (belt and suspenders)"
   # In case ArgoCD is not configured to prune, delete the Crossplane resources
-  # ourselves. --ignore-not-found keeps this idempotent.
-  kubectl delete mysql2 --all --all-namespaces --ignore-not-found --timeout=15m || true
-  kubectl delete flexibleserver.dbformysql.azure.upbound.io --all --ignore-not-found --timeout=15m || true
-  kubectl delete flexibledatabase.dbformysql.azure.upbound.io --all --ignore-not-found --timeout=15m || true
-  kubectl delete flexibleserverfirewallrule.dbformysql.azure.upbound.io --all --ignore-not-found --timeout=15m || true
+  # ourselves. ArgoCD's cascade may already have removed these (and their CRDs),
+  # so we skip any kind whose CRD is no longer installed to avoid noisy
+  # "server doesn't have a resource type" errors. --ignore-not-found keeps the
+  # delete itself idempotent.
+  delete_kind_if_present mysql2 --all-namespaces
+  delete_kind_if_present flexibleserver.dbformysql.azure.upbound.io
+  delete_kind_if_present flexibledatabase.dbformysql.azure.upbound.io
+  delete_kind_if_present flexibleserverfirewallrule.dbformysql.azure.upbound.io
 
   echo "==> Waiting for all Crossplane-managed Azure MySQL resources to be fully deleted"
   wait_for_crossplane_mysql_gone
@@ -147,8 +167,8 @@ function delete_crossplane_providerconfigs() {
     for kind in "${pc_kinds[@]}"; do
       kubectl get "$kind" >/dev/null 2>&1 || continue
       local n
-      n="$(kubectl get "$kind" --no-headers 2>/dev/null | wc -l | tr -d '[:space:]')"
-      remaining=$(( remaining + n ))
+      n="$(kubectl get "$kind" --no-headers 2>/dev/null | wc -l | tr -d '[:space:]' || true)"
+      remaining=$(( remaining + ${n:-0} ))
     done
 
     if [ "$remaining" -eq 0 ]; then
@@ -195,9 +215,13 @@ function wait_for_crossplane_mysql_gone() {
       flexibleserver.dbformysql.azure.m.upbound.io \
       flexibledatabase.dbformysql.azure.m.upbound.io \
       flexibleserverfirewallrule.dbformysql.azure.m.upbound.io; do
+      # Skip kinds whose CRD is not (or no longer) installed. ArgoCD's cascade
+      # can remove the XRD/provider CRDs before we poll, so `kubectl get` would
+      # otherwise fail and - under `set -o pipefail`/`set -e` - kill the script.
+      kubectl get "$kind" --all-namespaces --no-headers >/dev/null 2>&1 || continue
       local count
-      count="$(kubectl get "$kind" --all-namespaces --no-headers 2>/dev/null | wc -l | tr -d '[:space:]')"
-      remaining=$(( remaining + count ))
+      count="$(kubectl get "$kind" --all-namespaces --no-headers 2>/dev/null | wc -l | tr -d '[:space:]' || true)"
+      remaining=$(( remaining + ${count:-0} ))
     done
 
     if [ "$remaining" -eq 0 ]; then

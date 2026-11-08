@@ -18,6 +18,11 @@ resource "azurerm_kubernetes_cluster" "this" {
 
     node_public_ip_enabled      = true
     temporary_name_for_rotation = "defaulttmp"
+    upgrade_settings {
+      drain_timeout_in_minutes      = 0
+      max_surge                     = "10%"
+      node_soak_duration_in_minutes = 0
+    }
   }
 
   # Required in azurerm 5.x. "Manual" keeps the explicitly defined node pools
