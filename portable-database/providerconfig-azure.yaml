@@ -1,15 +1,3 @@
-# Namespaced (Crossplane v2) Azure ProviderConfig.
-#
-# The portable MySQL2 composite is scope: Namespaced, so it composes the
-# namespaced Azure managed resources in the "dbformysql.azure.m.upbound.io"
-# API group. Those MRs require a providerConfigRef whose kind is a config
-# from the matching namespaced family group "azure.m.upbound.io" -- the legacy
-# cluster-scoped "azure.upbound.io/ProviderConfig" cannot be used by them.
-#
-# A ClusterProviderConfig is cluster-scoped and therefore usable from any
-# namespace, which lets the composite in the portable-database namespace
-# reference it. It reuses the same service-principal credentials Secret that
-# the legacy ProviderConfig uses (created by the crossplane-azure Terraform).
 apiVersion: azure.m.upbound.io/v1beta1
 kind: ClusterProviderConfig
 metadata:

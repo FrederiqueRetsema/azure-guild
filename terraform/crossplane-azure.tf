@@ -30,7 +30,6 @@ resource "kubernetes_manifest" "crossplane_provider_azure_service" {
   depends_on = [kubernetes_manifest.crossplane_provider_family_azure]
 }
 
-# Secret holding the Azure service-principal credentials JSON.
 resource "kubernetes_secret" "crossplane_azure_creds" {
   metadata {
     name      = "azure-secret"

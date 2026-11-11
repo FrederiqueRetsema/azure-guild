@@ -1,26 +1,7 @@
 #!/usr/bin/env bash
 #
-# Deploy the AKS cluster + ArgoCD stack.
-#
-# Prerequisites:
-#   - terraform >= 1.9
-#   - Azure CLI, logged in via `az login`
-#   - an active subscription selected (az account set --subscription <id>)
-#   - permission to create a service principal and assign the Contributor role
-#     on the subscription (needed to provision Crossplane Azure credentials)
-#
 # Usage:
 #   ./deploy.sh
-#
-# You must provide github_repo_url, either via a terraform.tfvars file or
-# the TF_VAR_github_repo_url environment variable.
-#
-# Azure credentials for the Crossplane Azure provider are created automatically:
-# the script provisions a service principal ("crossplane-azure-guild" by
-# default, override via CROSSPLANE_AZURE_SP_NAME) and feeds its SDK-auth JSON to
-# Terraform. To use your own service principal instead, export
-# TF_VAR_crossplane_azure_credentials_json before running and the script will
-# leave it untouched.
 
 function run_in_script_dir() {  
 
@@ -81,9 +62,6 @@ function prepare_azure_credentials() {
   # To make the deploy always work, we create (or reset) a dedicated service
   # principal here using the already logged-in az session and build the
   # SDK-auth style JSON the Upbound Azure provider expects.
-  #
-  # If the caller already exported TF_VAR_crossplane_azure_credentials_json we
-  # leave it untouched so a custom service principal can be used.
 
   if [ -n "${TF_VAR_crossplane_azure_credentials_json:-}" ]; then
     echo "==> Azure credentials already provided via TF_VAR_crossplane_azure_credentials_json; skipping service principal creation"
@@ -97,18 +75,13 @@ function prepare_azure_credentials() {
   subscription_id="$(az account show --query id -o tsv)"
   tenant_id="$(az account show --query tenantId -o tsv)"
 
-  # --sdk-auth is deprecated, so we request only the raw secret fields and
-  # assemble the SDK-auth JSON ourselves below.
   local client_id client_secret existing_id
 
-  # Look up the SP by its display name so re-runs reset the existing one
-  # instead of piling up a new service principal every deploy.
   existing_id="$(az ad sp list --display-name "$sp_name" --query '[0].appId' -o tsv 2>/dev/null || true)"
 
   if [ -n "$existing_id" ]; then
     echo "    Reusing existing service principal '${sp_name}' and resetting its credential"
     client_id="$existing_id"
-    # Ensure the role assignment exists (idempotent) in case it was removed.
     az role assignment create \
       --assignee "$client_id" \
       --role "Contributor" \
@@ -128,8 +101,6 @@ function prepare_azure_credentials() {
       --query password -o tsv)"
   fi
 
-  # Assemble the SDK-auth JSON the Upbound Azure provider expects. Written with
-  # a heredoc so there is no fragile string interpolation of quotes.
   TF_VAR_crossplane_azure_credentials_json="$(cat <<JSON
 {
   "clientId": "${client_id}",
@@ -156,7 +127,6 @@ function determine_public_ip() {
 
   echo "==> Determining the public IP address of this machine"
 
-  # Try a few well-known endpoints so we are not dependent on a single service.
   local ip=""
   for url in "https://api.ipify.org" "https://ifconfig.me/ip" "https://checkip.amazonaws.com"; do
     ip="$(curl -fsS --max-time 10 "$url" 2>/dev/null | tr -d '[:space:]')"
@@ -170,13 +140,11 @@ function determine_public_ip() {
     exit 1
   fi
 
-  # Basic sanity check that this looks like an IPv4 address.
   if ! echo "$ip" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
     echo "ERROR: Detected value '${ip}' does not look like a valid IPv4 address." >&2
     exit 1
   fi
 
-  # Export as /32 so only this machine is allowed to reach the NodePort.
   export TF_VAR_nodeport_source_address_prefix="${ip}/32"
   echo "Public IP detected: ${ip}"
   echo "Restricting NodePort source address prefix to: ${TF_VAR_nodeport_source_address_prefix}"

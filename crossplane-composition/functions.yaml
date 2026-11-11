@@ -1,5 +1,3 @@
-# Composition function used by the GuildApp composition.
-#
 # function-patch-and-transform lets the composition declare plain-YAML base
 # resources and patch values from the GuildApp XR onto them.
 apiVersion: pkg.crossplane.io/v1

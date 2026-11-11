@@ -13,6 +13,10 @@ resource "helm_release" "argocd" {
     yamlencode({
       configs = {
         cm = {
+          # Some resources have no runtime health condition, so ArgoCD leaves
+          # them Progressing forever (shown as a spinner under each Composition
+          # in the tree). Treat them as Healthy so the app can reach a fully
+          # synced/healthy state.
           "resource.customizations.health.azure.m.upbound.io_ClusterProviderConfig" = <<-EOT
             hs = {}
             hs.status = "Healthy"
@@ -25,11 +29,6 @@ resource "helm_release" "argocd" {
             hs.message = "ProviderConfig has no runtime health; treated as Healthy"
             return hs
           EOT
-          # CompositionRevisions are immutable, auto-generated snapshots that
-          # Crossplane creates for every Composition change. They have no
-          # runtime health condition, so ArgoCD leaves them Progressing forever
-          # (shown as a spinner under each Composition in the tree). Treat them
-          # as Healthy so the app can reach a fully synced/healthy state.
           "resource.customizations.health.apiextensions.crossplane.io_CompositionRevision" = <<-EOT
             hs = {}
             hs.status = "Healthy"

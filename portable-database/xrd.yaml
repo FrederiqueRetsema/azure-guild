@@ -1,14 +1,3 @@
-# CompositeResourceDefinition for a portable MySQL database.
-#
-# The MySQL composite type abstracts away the cloud-specific managed
-# resources. It is backed by per-cloud compositions selected via
-# spec.compositionSelector:
-#   - azure: Upbound Azure MySQL FlexibleServer resources
-#   - aws:   Upbound AWS RDS Instance
-#
-# Both variants read the admin password from an externally-provided
-# Kubernetes secret (via the provider's password secret reference). That
-# secret lives OUTSIDE this composition.
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
