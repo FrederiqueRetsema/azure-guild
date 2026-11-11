@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="Bquuhoci_CmKFh5DSaTw">
-    <mxGraphModel dx="1272" dy="773" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="4681" background="light-dark(#060606,#121212)" math="0" shadow="0">
+    <mxGraphModel dx="2934" dy="1201" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="4681" background="light-dark(#060606,#121212)" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -52,8 +52,8 @@
         <mxCell id="K9Fpl6y4hkP0njXEfi_s-33" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="Deploy" vertex="1">
           <mxGeometry height="30" width="60" x="436" y="124" as="geometry" />
         </mxCell>
-        <mxCell id="hmy1eZh3dxw5eycY195g-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="Web applicatie (dev)" vertex="1">
-          <mxGeometry height="30" width="139" x="915" y="136" as="geometry" />
+        <mxCell id="hmy1eZh3dxw5eycY195g-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="Web applicatie (test)" vertex="1">
+          <mxGeometry height="30" width="139" x="918" y="136" as="geometry" />
         </mxCell>
         <mxCell id="hmy1eZh3dxw5eycY195g-2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FFFFFF;" value="Web applicatie (acc)" vertex="1">
           <mxGeometry height="30" width="139" x="919" y="265" as="geometry" />
