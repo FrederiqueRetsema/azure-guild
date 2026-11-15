@@ -119,9 +119,15 @@ function terraform_deploy_k8s_cluster() {
 
 function terraform_deploy_crossplane_aws_family_provider() {
 
-  echo "==> Phase 2: Crossplane AWS family provider"
+  # The family and service providers are applied together: the service
+  # providers require the family provider at exactly their own version. When
+  # only the family provider is upgraded, Crossplane installs a second family
+  # provider to satisfy the old service providers and dependency resolution
+  # gets stuck, so none of them become healthy.
+  echo "==> Phase 2: Crossplane AWS family and service providers"
   terraform apply -input=false -auto-approve \
-    -target=kubernetes_manifest.crossplane_provider_family_aws
+    -target=kubernetes_manifest.crossplane_provider_family_aws \
+    -target=kubernetes_manifest.crossplane_provider_aws_service
 
   REGION="$(terraform console <<<'var.region' | tr -d '"')"
   CLUSTER_NAME="$(terraform console <<<'var.cluster_name' | tr -d '"')"
@@ -129,8 +135,8 @@ function terraform_deploy_crossplane_aws_family_provider() {
     --region "$REGION" \
     --name "$CLUSTER_NAME" >/dev/null
 
-  echo "==> Waiting for provider-family-aws to become healthy"
-  kubectl wait --for=condition=Healthy provider.pkg.crossplane.io/provider-family-aws \
+  echo "==> Waiting for the Crossplane providers to become healthy"
+  kubectl wait --for=condition=Healthy provider.pkg.crossplane.io --all \
                --timeout=600s
 
 }
