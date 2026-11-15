@@ -166,18 +166,13 @@ spec:
                 osDisk:
                   caching: ReadWrite
                   storageAccountType: Standard_LRS
-                # Official AlmaLinux image from the Azure Marketplace. It needs a
-                # purchase plan and the terms must be accepted once per subscription:
-                #   az vm image terms accept --publisher almalinux --offer almalinux-x86_64 --plan 10-gen2
+                # Official AlmaLinux image from the Azure Marketplace. This image
+                # does not require purchase plan information, so no plan block is set.
                 sourceImageReference:
                   publisher: almalinux
                   offer: almalinux-x86_64
                   sku: 10-gen2
                   version: latest
-                plan:
-                  name: 10-gen2
-                  product: almalinux-x86_64
-                  publisher: almalinux
     - step: auto-ready
       functionRef:
         name: crossplane-contrib-function-auto-ready
