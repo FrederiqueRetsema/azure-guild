@@ -1,0 +1,130 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: mysqlserver-azure
+  labels:
+    cloud: azure
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: MySQLServer
+  mode: Pipeline
+  pipeline:
+    - step: render
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $name := $xr.metadata.name }}
+            {{- $ns := $xr.metadata.namespace }}
+            {{- if not $spec.resourceGroupName }}{{ fail "spec.resourceGroupName is required for the Azure composition" }}{{ end }}
+            {{- $rg := $spec.resourceGroupName }}
+            {{- $location := default "westeurope" $spec.region }}
+            {{- $zone := printf "%s.mysql.database.azure.com" $name }}
+            {{- $skus := dict "XS" "B_Standard_B1ms" "S" "B_Standard_B2s" "M" "GP_Standard_D2ds_v4" "L" "GP_Standard_D4ds_v4" "XL" "GP_Standard_D8ds_v4" }}
+            ---
+            # Private DNS zone so the VNet can resolve the private server name.
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: PrivateDNSZone
+            metadata:
+              name: {{ $zone }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "dns-zone" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                resourceGroupName: {{ $rg }}
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: PrivateDNSZoneVirtualNetworkLink
+            metadata:
+              name: {{ $name }}-link
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "dns-link" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                resourceGroupName: {{ $rg }}
+                privateDnsZoneNameRef:
+                  name: {{ $zone }}
+                virtualNetworkIdRef:
+                  # VirtualNetwork MR created by the VirtualNetwork composition.
+                  name: {{ $spec.network }}
+            ---
+            apiVersion: dbformysql.azure.m.upbound.io/v1beta1
+            kind: FlexibleServer
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "server" }}
+                crossplane.io/external-name: {{ $name }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                location: {{ $location }}
+                resourceGroupName: {{ $rg }}
+                version: "8.0.21"
+                skuName: {{ index $skus $spec.size }}
+                administratorLogin: mysqladmin
+                administratorPasswordSecretRef:
+                  name: {{ $spec.secretName }}
+                  key: password
+                backupRetentionDays: 7
+                storage:
+                  sizeGb: 20
+                  autoGrowEnabled: true
+                # Private access: the server lives in the delegated subnet.
+                delegatedSubnetIdRef:
+                  name: {{ $spec.network }}-{{ $spec.subnet }}
+                privateDnsZoneIdRef:
+                  name: {{ $zone }}
+            ---
+            apiVersion: dbformysql.azure.m.upbound.io/v1beta1
+            kind: FlexibleDatabase
+            metadata:
+              name: {{ $name }}-db
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "database" }}
+                # Underscores instead of hyphens, same as on AWS.
+                crossplane.io/external-name: {{ $spec.databaseName | replace "-" "_" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                resourceGroupName: {{ $rg }}
+                serverNameRef:
+                  name: {{ $name }}
+                charset: utf8mb4
+                collation: utf8mb4_unicode_ci
+            {{- $server := get (default (dict) .observed.resources) "server" }}
+            {{- $fqdn := "" }}
+            {{- if $server }}{{ $fqdn = dig "resource" "status" "atProvider" "fqdn" "" $server }}{{ end }}
+            {{- if $fqdn }}
+            ---
+            apiVersion: {{ $xr.apiVersion }}
+            kind: {{ $xr.kind }}
+            status:
+              endpoint: {{ $fqdn }}
+            {{- end }}
+    - step: auto-ready
+      functionRef:
+        name: crossplane-contrib-function-auto-ready

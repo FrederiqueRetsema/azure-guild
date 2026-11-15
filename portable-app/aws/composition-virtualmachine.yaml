@@ -1,0 +1,127 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: virtualmachine-aws
+  labels:
+    cloud: aws
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: VirtualMachine
+  mode: Pipeline
+  pipeline:
+    - step: render
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $name := $xr.metadata.name }}
+            {{- $ns := $xr.metadata.namespace }}
+            {{- $region := default "eu-west-1" $spec.region }}
+            {{- if ne (default "almalinux" $spec.image) "almalinux" }}{{ fail "only image almalinux is supported" }}{{ end }}
+            {{- $public := eq $spec.subnet "public" }}
+            {{- $types := dict "XS" "t3.micro" "S" "t3.small" "M" "t3.medium" "L" "t3.large" "XL" "t3.xlarge" }}
+            {{- /* AlmaLinux OS 10.2 (x86_64) community AMI. Updated by update-aws-amis.sh */ -}}
+            {{- $amis := dict "eu-west-1" "ami-0ab304a09cc427b42" }}
+            {{- $ami := get $amis $region }}
+            {{- if not $ami }}{{ fail (printf "no AlmaLinux AMI known for region %s; add it to the composition" $region) }}{{ end }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: SecurityGroup
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "sg" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                name: {{ $name }}
+                description: Security group of VM {{ $name }}
+                vpcIdRef:
+                  # Vpc MR created by the VirtualNetwork composition.
+                  name: {{ $spec.network }}
+            ---
+            # Outbound traffic (package installs, database connections).
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: SecurityGroupEgressRule
+            metadata:
+              name: {{ $name }}-egress
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "sg-egress" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                securityGroupIdRef:
+                  name: {{ $name }}
+                ipProtocol: "-1"
+                cidrIpv4: 0.0.0.0/0
+            {{- if $public }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: SecurityGroupIngressRule
+            metadata:
+              name: {{ $name }}-http
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "sg-http" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                securityGroupIdRef:
+                  name: {{ $name }}
+                ipProtocol: tcp
+                fromPort: 80
+                toPort: 80
+                cidrIpv4: 0.0.0.0/0
+            {{- end }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: Instance
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "instance" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                ami: {{ $ami }}
+                instanceType: {{ index $types $spec.size }}
+                subnetIdRef:
+                  # Subnet MR (first availability zone) from the VirtualNetwork composition.
+                  name: {{ $spec.network }}-{{ $spec.subnet }}-a
+                vpcSecurityGroupIdRefs:
+                  - name: {{ $name }}
+            {{- if $public }}
+                associatePublicIpAddress: true
+            {{- end }}
+            {{- if $spec.userdata }}
+                userData: {{ $spec.userdata | toJson }}
+            {{- end }}
+                tags:
+                  Name: {{ $name }}
+    - step: auto-ready
+      functionRef:
+        name: crossplane-contrib-function-auto-ready

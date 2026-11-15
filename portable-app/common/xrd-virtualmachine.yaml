@@ -1,0 +1,75 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: virtualmachines.apps.azure-guild.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  scope: Namespaced
+  group: apps.azure-guild.io
+  names:
+    kind: VirtualMachine
+    plural: virtualmachines
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                network:
+                  description: Name of the VirtualNetwork the VM is placed in.
+                  type: string
+                subnet:
+                  description: >-
+                    Subnet type in the network. A VM in the "public" subnet
+                    gets a public IP address and allows HTTP (port 80).
+                  type: string
+                  enum:
+                    - public
+                    - private
+                    - data
+                image:
+                  description: Operating system image.
+                  type: string
+                  enum:
+                    - almalinux
+                  default: almalinux
+                size:
+                  description: >-
+                    T-shirt size, translated into a cloud-specific VM size by
+                    the composition.
+                  type: string
+                  enum:
+                    - XS
+                    - S
+                    - M
+                    - L
+                    - XL
+                  default: XS
+                userdata:
+                  description: >-
+                    Script that runs on first boot (cloud-init user data).
+                  type: string
+                region:
+                  description: >-
+                    Azure location or AWS region. Defaults to westeurope on
+                    Azure and eu-west-1 on AWS. Must match the network.
+                  type: string
+                resourceGroupName:
+                  description: >-
+                    Name of the existing Azure resource group to deploy into.
+                    Azure only; ignored on AWS.
+                  type: string
+                adminSecretName:
+                  description: >-
+                    Name of the Secret (key "password") with the VM admin
+                    password. Azure only; defaults to <name>-admin.
+                  type: string
+              required:
+                - network
+                - subnet

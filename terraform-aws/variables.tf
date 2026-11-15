@@ -1,49 +1,44 @@
-variable "resource_group_name" {
-  description = "Name of the resource group to deploy the AKS cluster into."
+variable "region" {
+  description = "AWS region to deploy resources into."
   type        = string
-}
-
-variable "location" {
-  description = "Azure region to deploy resources into."
-  type        = string
-  default     = "westeurope"
+  default     = "eu-west-1"
 }
 
 variable "cluster_name" {
-  description = "Name of the AKS cluster."
+  description = "Name of the EKS cluster."
   type        = string
-  default     = "azure-guild-aks"
-}
-
-variable "dns_prefix" {
-  description = "DNS prefix for the AKS cluster API server."
-  type        = string
-  default     = "azure-guild"
+  default     = "aws-guild-eks"
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version for the AKS cluster. Leave null to use the AKS default."
+  description = "Kubernetes version for the EKS cluster. Leave null to use the EKS default."
   type        = string
-  default     = null
+  default     = "1.37"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block of the VPC. Two /24 public subnets are carved out of it."
+  type        = string
+  default     = "10.0.0.0/16"
 }
 
 variable "node_count" {
-  description = "Number of nodes in the default node pool."
+  description = "Number of nodes in the managed node group."
   type        = number
   default     = 2
 }
 
-variable "node_vm_size" {
-  description = "VM size for the default node pool nodes."
+variable "node_instance_type" {
+  description = "EC2 instance type for the node group nodes."
   type        = string
-  default     = "Standard_D2s_v5"
+  default     = "t3.medium"
 }
 
 variable "tags" {
   description = "Tags applied to all resources."
   type        = map(string)
   default = {
-    project = "azure-guild"
+    project = "aws-guild"
     managed = "terraform"
     owner   = "Frederique"
   }
@@ -88,16 +83,22 @@ variable "argocd_app_namespace" {
   default     = "default"
 }
 
+variable "crossplane_managed_resource_path" {
+  description = "Path in the GitHub repository with the Crossplane managed resources. The default directory contains Azure resources; point this to AWS manifests when deploying on AWS."
+  type        = string
+  default     = "crossplane-managed-resource"
+}
+
 variable "guildapp_nodeport_http" {
   description = "NodePort to expose to the public internet (must match the Kubernetes Service nodePort)."
   type        = number
   default     = 30082
 }
 
-variable "nodeport_source_address_prefix" {
-  description = "Source CIDR allowed to reach the NodePort. Use \"*\"/\"Internet\" for the whole internet, or restrict to your own IP."
+variable "nodeport_source_cidr" {
+  description = "Source CIDR allowed to reach the NodePorts. Use 0.0.0.0/0 for the whole internet, or restrict to your own IP."
   type        = string
-  default     = "Internet"
+  default     = "0.0.0.0/0"
 }
 
 # --- ArgoCD public NodePort access ---
@@ -126,36 +127,28 @@ variable "crossplane_chart_version" {
   default     = "2.4.3"
 }
 
-# --- Crossplane Azure provider ---
+# --- Crossplane AWS provider ---
 
-variable "crossplane_azure_provider_version" {
-  description = "Version tag for the Upbound Azure family/service provider packages (xpkg.upbound.io/upbound/provider-azure-*)."
+variable "crossplane_aws_provider_version" {
+  description = "Version tag for the Upbound AWS family/service provider packages (xpkg.upbound.io/upbound/provider-aws-*)."
   type        = string
-  default     = "v2.8.0"
+  default     = "v2.5.2"
 }
 
-variable "crossplane_azure_service_providers" {
-  description = "List of Upbound Azure service provider packages to install (short names, e.g. \"resources\", \"network\"). The provider-family package is always installed as their dependency."
+variable "crossplane_aws_service_providers" {
+  description = "List of Upbound AWS service provider packages to install (short names, e.g. \"ec2\", \"rds\"). The provider-family package is always installed as their dependency."
   type        = list(string)
-  default     = ["resources", "network", "storage", "dbformysql"]
+  default     = ["ec2", "rds", "s3"]
 }
 
-variable "crossplane_azure_credentials_json" {
-  description = <<-EOT
-    Azure service principal credentials JSON used by the Crossplane Azure
-    ProviderConfig (the output of `az ad sp create-for-rbac --sdk-auth ...`).
-    Leave empty to skip creating the credentials Secret and ProviderConfig; you
-    can create them later by hand. Keep this out of version control (set it via
-    an environment variable TF_VAR_crossplane_azure_credentials_json or a
-    gitignored .tfvars file).
-  EOT
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "crossplane_azure_providerconfig_name" {
-  description = "Name of the Crossplane Azure ProviderConfig."
+variable "crossplane_aws_providerconfig_name" {
+  description = "Name of the Crossplane AWS ProviderConfig."
   type        = string
   default     = "default"
+}
+
+variable "crossplane_aws_iam_user_name" {
+  description = "Name of the IAM user whose access key is given to the Crossplane AWS ProviderConfig."
+  type        = string
+  default     = "crossplane-aws-guild"
 }

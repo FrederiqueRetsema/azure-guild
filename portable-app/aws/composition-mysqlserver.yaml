@@ -1,0 +1,137 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: mysqlserver-aws
+  labels:
+    cloud: aws
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: MySQLServer
+  mode: Pipeline
+  pipeline:
+    - step: render
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $name := $xr.metadata.name }}
+            {{- $ns := $xr.metadata.namespace }}
+            {{- $region := default "eu-west-1" $spec.region }}
+            {{- $classes := dict "XS" "db.t3.micro" "S" "db.t3.small" "M" "db.t3.medium" "L" "db.m6g.large" "XL" "db.m6g.xlarge" }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: SecurityGroup
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "sg" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                name: {{ $name }}
+                description: Security group of MySQL server {{ $name }}
+                vpcIdRef:
+                  # Vpc MR created by the VirtualNetwork composition.
+                  name: {{ $spec.network }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: SecurityGroupIngressRule
+            metadata:
+              name: {{ $name }}-mysql
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "sg-mysql" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                securityGroupIdRef:
+                  name: {{ $name }}
+                ipProtocol: tcp
+                fromPort: 3306
+                toPort: 3306
+                cidrIpv4: {{ default "10.0.0.0/16" $spec.allowedCidr }}
+            ---
+            # RDS needs subnets in at least two availability zones: use the
+            # subnets of the requested type in all three zones.
+            apiVersion: rds.aws.m.upbound.io/v1beta1
+            kind: SubnetGroup
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "subnet-group" }}
+                crossplane.io/external-name: {{ $name }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                description: Subnets of MySQL server {{ $name }}
+                subnetIdRefs:
+                {{- range $az := list "a" "b" "c" }}
+                  - name: {{ $spec.network }}-{{ $spec.subnet }}-{{ $az }}
+                {{- end }}
+            ---
+            apiVersion: rds.aws.m.upbound.io/v1beta1
+            kind: Instance
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "server" }}
+                crossplane.io/external-name: {{ $name }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                engine: mysql
+                engineVersion: "8.4"
+                instanceClass: {{ index $classes $spec.size }}
+                allocatedStorage: 20
+                maxAllocatedStorage: 100
+                storageType: gp3
+                # RDS database names allow letters, digits and underscores only.
+                dbName: {{ $spec.databaseName | replace "-" "_" }}
+                username: mysqladmin
+                passwordSecretRef:
+                  name: {{ $spec.secretName }}
+                  key: password
+                backupRetentionPeriod: 7
+                skipFinalSnapshot: true
+                publiclyAccessible: false
+                dbSubnetGroupNameRef:
+                  name: {{ $name }}
+                vpcSecurityGroupIdRefs:
+                  - name: {{ $name }}
+            {{- $server := get (default (dict) .observed.resources) "server" }}
+            {{- $address := "" }}
+            {{- if $server }}{{ $address = dig "resource" "status" "atProvider" "address" "" $server }}{{ end }}
+            {{- if $address }}
+            ---
+            apiVersion: {{ $xr.apiVersion }}
+            kind: {{ $xr.kind }}
+            status:
+              endpoint: {{ $address }}
+            {{- end }}
+    - step: auto-ready
+      functionRef:
+        name: crossplane-contrib-function-auto-ready

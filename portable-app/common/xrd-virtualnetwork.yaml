@@ -1,0 +1,40 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: virtualnetworks.apps.azure-guild.io
+  annotations:
+    # Apply the XRDs first and wait for their CRDs to be established.
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  scope: Namespaced
+  group: apps.azure-guild.io
+  names:
+    kind: VirtualNetwork
+    plural: virtualnetworks
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cidr:
+                  description: >-
+                    Address space of the VNet/VPC. Must be a /16 of the form
+                    a.b.0.0/16; the subnets are carved out of it as /24 blocks.
+                  type: string
+                  default: 10.0.0.0/16
+                region:
+                  description: >-
+                    Azure location or AWS region. Defaults to westeurope on
+                    Azure and eu-west-1 on AWS.
+                  type: string
+                resourceGroupName:
+                  description: >-
+                    Name of the existing Azure resource group to deploy into.
+                    Azure only; ignored on AWS.
+                  type: string

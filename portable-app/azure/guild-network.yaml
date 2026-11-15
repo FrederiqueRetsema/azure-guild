@@ -1,0 +1,57 @@
+apiVersion: apps.azure-guild.io/v1alpha1
+kind: VirtualNetwork
+metadata:
+  name: guild-network
+  annotations:
+    # Apply the composites last, once the XRDs' CRDs are registered.
+    argocd.argoproj.io/sync-wave: "2"
+    # Skip the client dry-run so ArgoCD does not fail when the type is
+    # not yet registered in the cluster's API discovery.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  crossplane:
+    compositionSelector:
+      matchLabels:
+        cloud: azure
+  resourceGroupName: frederique-azure-guild
+---
+apiVersion: apps.azure-guild.io/v1alpha1
+kind: VirtualMachine
+metadata:
+  name: guild-vm
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  crossplane:
+    compositionSelector:
+      matchLabels:
+        cloud: azure
+  network: guild-network
+  subnet: public
+  image: almalinux
+  resourceGroupName: frederique-azure-guild
+  adminSecretName: guild-vm-admin
+  userdata: |
+    #!/bin/bash
+    dnf install -y httpd mysql
+    systemctl enable --now httpd
+---
+apiVersion: apps.azure-guild.io/v1alpha1
+kind: MySQLServer
+metadata:
+  name: guild-databaseserver
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  crossplane:
+    compositionSelector:
+      matchLabels:
+        cloud: azure
+  network: guild-network
+  subnet: data
+  secretName: azure-guild-mysql-admin-portable-app
+  databaseName: guild-database
+  size: XS
+  resourceGroupName: frederique-azure-guild

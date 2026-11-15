@@ -38,19 +38,6 @@ function prerequisite_checks() {
 }
 
 
-function delete_kind_if_present() {
-
-  local kind="$1"
-  shift
-
-  if ! kubectl get "$kind" "$@" --no-headers >/dev/null 2>&1; then
-    return 0
-  fi
-
-  kubectl delete "$kind" --all "$@" --ignore-not-found --timeout=15m || true
-}
-
-
 function crossplane_predestroy_cleanup() {
 
   # Crossplane-managed Azure resources (the MySQL Flexible Servers, firewall
@@ -87,17 +74,14 @@ function crossplane_predestroy_cleanup() {
   fi
 
   echo "==> Deleting ArgoCD Applications that manage Crossplane resources"
-  kubectl -n argocd delete application portable-database crossplane-managed-resource \
+  kubectl -n argocd delete application portable-app crossplane-managed-resource \
     --cascade=foreground --ignore-not-found --timeout=15m || true
 
-  echo "==> Deleting Crossplane composite/managed MySQL resources directly (belt and suspenders)"
-  delete_kind_if_present mysql2 --all-namespaces
-  delete_kind_if_present flexibleserver.dbformysql.azure.upbound.io
-  delete_kind_if_present flexibledatabase.dbformysql.azure.upbound.io
-  delete_kind_if_present flexibleserverfirewallrule.dbformysql.azure.upbound.io
+  echo "==> Deleting remaining Crossplane managed resources directly (belt and suspenders)"
+  kubectl delete managed --all --all-namespaces --ignore-not-found --wait=false >/dev/null 2>&1 || true
 
-  echo "==> Waiting for all Crossplane-managed Azure MySQL resources to be fully deleted"
-  wait_for_crossplane_mysql_gone
+  echo "==> Waiting for all Crossplane-managed Azure resources to be fully deleted"
+  wait_for_crossplane_managed_gone
 
   echo "==> Deleting Crossplane Azure ProviderConfigs before Terraform tears them down"
   delete_crossplane_providerconfigs
@@ -161,40 +145,28 @@ function delete_crossplane_providerconfigs() {
 }
 
 
-function wait_for_crossplane_mysql_gone() {
+function wait_for_crossplane_managed_gone() {
 
   local deadline=$(( $(date +%s) + 1200 )) # up to 20 minutes
   local remaining
 
   while true; do
-    remaining=0
-    for kind in \
-      mysql2 \
-      flexibleserver.dbformysql.azure.upbound.io \
-      flexibledatabase.dbformysql.azure.upbound.io \
-      flexibleserverfirewallrule.dbformysql.azure.upbound.io \
-      flexibleserver.dbformysql.azure.m.upbound.io \
-      flexibledatabase.dbformysql.azure.m.upbound.io \
-      flexibleserverfirewallrule.dbformysql.azure.m.upbound.io; do
-      # Skip kinds whose CRD is not (or no longer) installed. ArgoCD's cascade
-      # can remove the XRD/provider CRDs before we poll, so `kubectl get` would
-      # otherwise fail and - under `set -o pipefail`/`set -e` - kill the script.
-      kubectl get "$kind" --all-namespaces --no-headers >/dev/null 2>&1 || continue
-      local count
-      count="$(kubectl get "$kind" --all-namespaces --no-headers 2>/dev/null | wc -l | tr -d '[:space:]' || true)"
-      remaining=$(( remaining + ${count:-0} ))
-    done
+    # "managed" is the Crossplane category that groups all managed resources of
+    # every installed provider (cluster-scoped and namespaced). If the CRDs are
+    # already gone the command fails and the count is 0.
+    remaining="$(kubectl get managed --all-namespaces --no-headers 2>/dev/null | wc -l | tr -d '[:space:]' || true)"
+    remaining="${remaining:-0}"
 
     if [ "$remaining" -eq 0 ]; then
-      echo "    All Crossplane-managed MySQL resources are gone."
+      echo "    All Crossplane-managed Azure resources are gone."
       return
     fi
 
     if [ "$(date +%s)" -ge "$deadline" ]; then
-      echo "WARNING: Timed out waiting for Crossplane MySQL resources to delete." >&2
+      echo "WARNING: Timed out waiting for Crossplane managed resources to delete." >&2
       echo "         ${remaining} resource(s) still present; the subsequent" >&2
       echo "         resource-group delete should clean up any leftover Azure" >&2
-      echo "         servers, but verify in the Azure portal." >&2
+      echo "         resources, but verify in the Azure portal." >&2
       return
     fi
 

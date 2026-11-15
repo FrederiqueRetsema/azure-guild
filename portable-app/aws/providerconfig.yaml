@@ -1,14 +1,14 @@
-apiVersion: azure.m.upbound.io/v1beta1
+apiVersion: aws.m.upbound.io/v1beta1
 kind: ClusterProviderConfig
 metadata:
   name: default
   annotations:
-    # Must exist before the composite (wave 2) so the composed MRs resolve it.
+    # Must exist before the composites (wave 2) so the composed resources resolve it.
     argocd.argoproj.io/sync-wave: "0"
 spec:
   credentials:
     source: Secret
     secretRef:
-      name: azure-secret
+      name: aws-secret
       namespace: crossplane-system
       key: creds

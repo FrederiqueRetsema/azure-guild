@@ -116,12 +116,12 @@ resource "kubernetes_manifest" "crossplane_managed_resource" {
 }
 
 
-resource "kubernetes_manifest" "portable_database" {
+resource "kubernetes_manifest" "portable_app" {
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "Application"
     metadata = {
-      name      = "portable-database"
+      name      = "portable-app"
       namespace = var.argocd_namespace
       finalizers = [
         "resources-finalizer.argocd.argoproj.io",
@@ -129,14 +129,22 @@ resource "kubernetes_manifest" "portable_database" {
     }
     spec = {
       project = "default"
-      source = {
-        repoURL        = var.github_repo_url
-        targetRevision = var.github_repo_revision
-        path           = "portable-database"
-      }
+      # Shared XRDs/functions plus the Azure compositions and composites.
+      sources = [
+        {
+          repoURL        = var.github_repo_url
+          targetRevision = var.github_repo_revision
+          path           = "portable-app/common"
+        },
+        {
+          repoURL        = var.github_repo_url
+          targetRevision = var.github_repo_revision
+          path           = "portable-app/azure"
+        },
+      ]
       destination = {
         server    = "https://kubernetes.default.svc"
-        namespace = "portable-database"
+        namespace = "portable-app"
       }
       syncPolicy = {
         automated = {

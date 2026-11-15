@@ -1,0 +1,85 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: mysqlservers.apps.azure-guild.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  scope: Namespaced
+  group: apps.azure-guild.io
+  names:
+    kind: MySQLServer
+    plural: mysqlservers
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                network:
+                  description: Name of the VirtualNetwork the database is placed in.
+                  type: string
+                subnet:
+                  description: >-
+                    Subnet type in the network. On AWS the database uses the
+                    subnets of this type in all availability zones.
+                  type: string
+                  enum:
+                    - public
+                    - private
+                    - data
+                  default: data
+                secretName:
+                  description: >-
+                    Name of the Secret (key "password") in the same namespace
+                    with the database admin password.
+                  type: string
+                databaseName:
+                  description: >-
+                    Name of the database to create. Hyphens are replaced by
+                    underscores on AWS, which does not allow them.
+                  type: string
+                size:
+                  description: >-
+                    T-shirt size, translated into a cloud-specific SKU or
+                    instance class by the composition.
+                  type: string
+                  enum:
+                    - XS
+                    - S
+                    - M
+                    - L
+                    - XL
+                  default: XS
+                allowedCidr:
+                  description: >-
+                    CIDR that may connect to the database on port 3306. AWS
+                    only (Azure uses the delegated subnet inside the VNet).
+                    Must cover the VirtualNetwork cidr.
+                  type: string
+                  default: 10.0.0.0/16
+                region:
+                  description: >-
+                    Azure location or AWS region. Defaults to westeurope on
+                    Azure and eu-west-1 on AWS. Must match the network.
+                  type: string
+                resourceGroupName:
+                  description: >-
+                    Name of the existing Azure resource group to deploy into.
+                    Azure only; ignored on AWS.
+                  type: string
+              required:
+                - network
+                - secretName
+                - databaseName
+            status:
+              type: object
+              properties:
+                endpoint:
+                  description: Host name of the database server.
+                  type: string

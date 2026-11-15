@@ -17,13 +17,13 @@ resource "helm_release" "argocd" {
           # them Progressing forever (shown as a spinner under each Composition
           # in the tree). Treat them as Healthy so the app can reach a fully
           # synced/healthy state.
-          "resource.customizations.health.azure.m.upbound.io_ClusterProviderConfig" = <<-EOT
+          "resource.customizations.health.aws.m.upbound.io_ClusterProviderConfig"          = <<-EOT
             hs = {}
             hs.status = "Healthy"
             hs.message = "ClusterProviderConfig has no runtime health; treated as Healthy"
             return hs
           EOT
-          "resource.customizations.health.azure.upbound.io_ProviderConfig"          = <<-EOT
+          "resource.customizations.health.aws.upbound.io_ProviderConfig"                   = <<-EOT
             hs = {}
             hs.status = "Healthy"
             hs.message = "ProviderConfig has no runtime health; treated as Healthy"
@@ -55,5 +55,5 @@ resource "helm_release" "argocd" {
     },
   ]
 
-  depends_on = [azurerm_kubernetes_cluster.this]
+  depends_on = [aws_eks_node_group.default]
 }

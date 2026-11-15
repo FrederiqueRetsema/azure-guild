@@ -1,0 +1,160 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: virtualnetwork-aws
+  labels:
+    cloud: aws
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: VirtualNetwork
+  mode: Pipeline
+  pipeline:
+    - step: render
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $name := $xr.metadata.name }}
+            {{- $ns := $xr.metadata.namespace }}
+            {{- $region := default "eu-west-1" $spec.region }}
+            {{- $cidr := default "10.0.0.0/16" $spec.cidr }}
+            {{- $base := regexFind "^[0-9]+[.][0-9]+" $cidr }}
+            {{- $azs := list "a" "b" "c" }}
+            {{- $offsets := dict "public" 0 "private" 10 "data" 20 }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: Vpc
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "vpc" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                cidrBlock: {{ $cidr }}
+                enableDnsSupport: true
+                enableDnsHostnames: true
+                tags:
+                  Name: {{ $name }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: InternetGateway
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "igw" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                vpcIdRef:
+                  name: {{ $name }}
+                tags:
+                  Name: {{ $name }}
+            ---
+            # Route table for the public subnets (default route to the internet).
+            # The private and data subnets keep the VPC main route table, which
+            # only has the local route.
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: RouteTable
+            metadata:
+              name: {{ $name }}-public
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "route-table-public" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                vpcIdRef:
+                  name: {{ $name }}
+                tags:
+                  Name: {{ $name }}-public
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: Route
+            metadata:
+              name: {{ $name }}-public-internet
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "route-public-internet" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                routeTableIdRef:
+                  name: {{ $name }}-public
+                destinationCidrBlock: 0.0.0.0/0
+                gatewayIdRef:
+                  name: {{ $name }}
+            {{- range $type := list "public" "private" "data" }}
+            {{- range $i, $az := $azs }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: Subnet
+            metadata:
+              name: {{ $name }}-{{ $type }}-{{ $az }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation (printf "subnet-%s-%s" $type $az) }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                availabilityZone: {{ $region }}{{ $az }}
+                cidrBlock: {{ $base }}.{{ add (index $offsets $type) $i 1 }}.0/24
+                vpcIdRef:
+                  name: {{ $name }}
+            {{- if eq $type "public" }}
+                mapPublicIpOnLaunch: true
+            {{- end }}
+                tags:
+                  Name: {{ $name }}-{{ $type }}-{{ $az }}
+                  Tier: {{ $type }}
+            {{- if eq $type "public" }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: RouteTableAssociation
+            metadata:
+              name: {{ $name }}-public-{{ $az }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation (printf "route-assoc-public-%s" $az) }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                routeTableIdRef:
+                  name: {{ $name }}-public
+                subnetIdRef:
+                  name: {{ $name }}-public-{{ $az }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+    - step: auto-ready
+      functionRef:
+        name: crossplane-contrib-function-auto-ready

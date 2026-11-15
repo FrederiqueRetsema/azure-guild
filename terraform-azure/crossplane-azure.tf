@@ -68,6 +68,6 @@ resource "kubernetes_manifest" "crossplane_azure_providerconfig" {
     kubernetes_manifest.crossplane_provider_family_azure,
     kubernetes_secret.crossplane_azure_creds,
     kubernetes_manifest.crossplane_managed_resource,
-    kubernetes_manifest.portable_database,
+    kubernetes_manifest.portable_app,
   ]
 }

@@ -1,0 +1,82 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: virtualnetwork-azure
+  labels:
+    cloud: azure
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: VirtualNetwork
+  mode: Pipeline
+  pipeline:
+    - step: render
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $name := $xr.metadata.name }}
+            {{- $ns := $xr.metadata.namespace }}
+            {{- if not $spec.resourceGroupName }}{{ fail "spec.resourceGroupName is required for the Azure composition" }}{{ end }}
+            {{- $rg := $spec.resourceGroupName }}
+            {{- $location := default "westeurope" $spec.region }}
+            {{- $cidr := default "10.0.0.0/16" $spec.cidr }}
+            {{- $base := regexFind "^[0-9]+[.][0-9]+" $cidr }}
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: VirtualNetwork
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "vnet" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                location: {{ $location }}
+                resourceGroupName: {{ $rg }}
+                addressSpace:
+                  - {{ $cidr }}
+            {{- range $i, $type := list "public" "private" "data" }}
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: Subnet
+            metadata:
+              name: {{ $name }}-{{ $type }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation (printf "subnet-%s" $type) }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                resourceGroupName: {{ $rg }}
+                virtualNetworkNameRef:
+                  name: {{ $name }}
+                addressPrefixes:
+                  - {{ $base }}.{{ add $i 1 }}.0/24
+            {{- if eq $type "data" }}
+                # Azure Database for MySQL flexible server with private access
+                # needs a subnet that is delegated to the service.
+                delegation:
+                  - name: mysql-flexible-server
+                    serviceDelegation:
+                      name: Microsoft.DBforMySQL/flexibleServers
+                      actions:
+                        - Microsoft.Network/virtualNetworks/subnets/join/action
+            {{- end }}
+            {{- end }}
+    - step: auto-ready
+      functionRef:
+        name: crossplane-contrib-function-auto-ready

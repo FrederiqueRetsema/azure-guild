@@ -17,4 +17,6 @@ resource_group_name = "frederique-azure-guild"
 
 # Crossplane Azure service providers. Includes "dbformysql" so the MySQL
 # Flexible Server managed resources in ../crossplane-managed-resource work.
-# crossplane_azure_service_providers = ["resources", "network", "storage", "dbformysql"]
+# "network" and "compute" are used by the VirtualNetwork/VirtualMachine
+# compositions in ../portable-app.
+# crossplane_azure_service_providers = ["resources", "network", "storage", "dbformysql", "compute"]

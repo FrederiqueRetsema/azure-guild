@@ -1,0 +1,183 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: virtualmachine-azure
+  labels:
+    cloud: azure
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  compositeTypeRef:
+    apiVersion: apps.azure-guild.io/v1alpha1
+    kind: VirtualMachine
+  mode: Pipeline
+  pipeline:
+    - step: render
+      functionRef:
+        name: crossplane-contrib-function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{- $xr := .observed.composite.resource }}
+            {{- $spec := $xr.spec }}
+            {{- $name := $xr.metadata.name }}
+            {{- $ns := $xr.metadata.namespace }}
+            {{- if not $spec.resourceGroupName }}{{ fail "spec.resourceGroupName is required for the Azure composition" }}{{ end }}
+            {{- if ne (default "almalinux" $spec.image) "almalinux" }}{{ fail "only image almalinux is supported" }}{{ end }}
+            {{- $rg := $spec.resourceGroupName }}
+            {{- $location := default "westeurope" $spec.region }}
+            {{- $public := eq $spec.subnet "public" }}
+            {{- $adminSecret := default (printf "%s-admin" $name) $spec.adminSecretName }}
+            {{- $sizes := dict "XS" "Standard_B2s" "S" "Standard_B2ms" "M" "Standard_D2s_v5" "L" "Standard_D4s_v5" "XL" "Standard_D8s_v5" }}
+            {{- if $public }}
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: PublicIP
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "public-ip" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                location: {{ $location }}
+                resourceGroupName: {{ $rg }}
+                allocationMethod: Static
+                sku: Standard
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: SecurityGroup
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "nsg" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                location: {{ $location }}
+                resourceGroupName: {{ $rg }}
+                securityRule:
+                  - name: allow-http
+                    priority: 100
+                    direction: Inbound
+                    access: Allow
+                    protocol: Tcp
+                    sourcePortRange: "*"
+                    destinationPortRange: "80"
+                    sourceAddressPrefix: "*"
+                    destinationAddressPrefix: "*"
+            {{- end }}
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: NetworkInterface
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "nic" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                location: {{ $location }}
+                resourceGroupName: {{ $rg }}
+                ipConfiguration:
+                  - name: internal
+                    privateIpAddressAllocation: Dynamic
+                    subnetIdRef:
+                      # Subnet MR created by the VirtualNetwork composition.
+                      name: {{ $spec.network }}-{{ $spec.subnet }}
+            {{- if $public }}
+                    publicIpAddressIdRef:
+                      name: {{ $name }}
+            {{- end }}
+            {{- if $public }}
+            ---
+            apiVersion: network.azure.m.upbound.io/v1beta1
+            kind: NetworkInterfaceSecurityGroupAssociation
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "nic-nsg" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                networkInterfaceIdRef:
+                  name: {{ $name }}
+                networkSecurityGroupIdRef:
+                  name: {{ $name }}
+            {{- end }}
+            {{- if $spec.userdata }}
+            ---
+            # The Azure provider reads custom data from a Secret. The value in
+            # the Secret must itself be base64 encoded, hence the double encoding.
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: {{ $name }}-userdata
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "userdata" }}
+            type: Opaque
+            data:
+              customData: {{ $spec.userdata | b64enc | b64enc }}
+            {{- end }}
+            ---
+            apiVersion: compute.azure.m.upbound.io/v1beta1
+            kind: LinuxVirtualMachine
+            metadata:
+              name: {{ $name }}
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "vm" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                location: {{ $location }}
+                resourceGroupName: {{ $rg }}
+                size: {{ index $sizes $spec.size }}
+                adminUsername: azureuser
+                disablePasswordAuthentication: false
+                adminPasswordSecretRef:
+                  name: {{ $adminSecret }}
+                  key: password
+            {{- if $spec.userdata }}
+                customDataSecretRef:
+                  name: {{ $name }}-userdata
+                  key: customData
+            {{- end }}
+                networkInterfaceIdsRefs:
+                  - name: {{ $name }}
+                osDisk:
+                  caching: ReadWrite
+                  storageAccountType: Standard_LRS
+                # Official AlmaLinux image from the Azure Marketplace. It needs a
+                # purchase plan and the terms must be accepted once per subscription:
+                #   az vm image terms accept --publisher almalinux --offer almalinux-x86_64 --plan 10-gen2
+                sourceImageReference:
+                  publisher: almalinux
+                  offer: almalinux-x86_64
+                  sku: 10-gen2
+                  version: latest
+                plan:
+                  name: 10-gen2
+                  product: almalinux-x86_64
+                  publisher: almalinux
+    - step: auto-ready
+      functionRef:
+        name: crossplane-contrib-function-auto-ready
