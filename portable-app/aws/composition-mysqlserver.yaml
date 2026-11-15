@@ -44,7 +44,7 @@ spec:
                 name: {{ $name }}
                 description: Security group of MySQL server {{ $name }}
                 vpcIdRef:
-                  # Vpc MR created by the VirtualNetwork composition.
+                  # VPC MR created by the VirtualNetwork composition.
                   name: {{ $spec.network }}
             ---
             apiVersion: ec2.aws.m.upbound.io/v1beta1

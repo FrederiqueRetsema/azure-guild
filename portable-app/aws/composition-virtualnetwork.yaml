@@ -32,7 +32,7 @@ spec:
             {{- $offsets := dict "public" 0 "private" 10 "data" 20 }}
             ---
             apiVersion: ec2.aws.m.upbound.io/v1beta1
-            kind: Vpc
+            kind: VPC
             metadata:
               name: {{ $name }}
               namespace: {{ $ns }}
