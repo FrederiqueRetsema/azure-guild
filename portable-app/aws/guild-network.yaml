@@ -31,7 +31,7 @@ spec:
   image: almalinux
   userdata: |
     #!/bin/bash
-    dnf install -y httpd mysql
+    dnf install -y httpd mysql8.4
     systemctl enable --now httpd
 ---
 apiVersion: apps.azure-guild.io/v1alpha1
