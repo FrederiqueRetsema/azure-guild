@@ -132,7 +132,7 @@ variable "crossplane_chart_version" {
 variable "crossplane_aws_provider_version" {
   description = "Version tag for the Upbound AWS family/service provider packages (xpkg.upbound.io/upbound/provider-aws-*)."
   type        = string
-  default     = "v2.5.2"
+  default     = "v2.9.0"
 }
 
 variable "crossplane_aws_service_providers" {

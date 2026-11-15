@@ -28,7 +28,7 @@ spec:
             {{- if not $spec.resourceGroupName }}{{ fail "spec.resourceGroupName is required for the Azure composition" }}{{ end }}
             {{- $rg := $spec.resourceGroupName }}
             {{- $location := default "westeurope" $spec.region }}
-            {{- $zone := printf "%s.mysql.database.azure.com" $name }}
+            {{- $zone := printf "%s.private.mysql.database.azure.com" $name }}
             {{- $skus := dict "XS" "B_Standard_B1ms" "S" "B_Standard_B2s" "M" "GP_Standard_D2ds_v4" "L" "GP_Standard_D4ds_v4" "XL" "GP_Standard_D8ds_v4" }}
             ---
             # Private DNS zone so the VNet can resolve the private server name.
