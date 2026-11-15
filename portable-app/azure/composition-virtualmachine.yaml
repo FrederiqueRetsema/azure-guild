@@ -75,6 +75,17 @@ spec:
                     destinationPortRange: "80"
                     sourceAddressPrefix: "*"
                     destinationAddressPrefix: "*"
+            {{- if $spec.sshSourceCidr }}
+                  - name: allow-ssh
+                    priority: 110
+                    direction: Inbound
+                    access: Allow
+                    protocol: Tcp
+                    sourcePortRange: "*"
+                    destinationPortRange: "22"
+                    sourceAddressPrefix: {{ $spec.sshSourceCidr | quote }}
+                    destinationAddressPrefix: "*"
+            {{- end }}
             {{- end }}
             ---
             apiVersion: network.azure.m.upbound.io/v1beta1

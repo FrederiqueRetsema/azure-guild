@@ -29,10 +29,25 @@ spec:
             {{- if ne (default "almalinux" $spec.image) "almalinux" }}{{ fail "only image almalinux is supported" }}{{ end }}
             {{- $public := eq $spec.subnet "public" }}
             {{- $types := dict "XS" "t3.micro" "S" "t3.small" "M" "t3.medium" "L" "t3.large" "XL" "t3.xlarge" }}
-            {{- /* AlmaLinux OS 10.2 (x86_64) community AMI. Updated by update-aws-amis.sh */ -}}
+            {{- /* AlmaLinux OS 10.2 (x86_64) community AMI. Updated by update-dynamic-values.sh */ -}}
             {{- $amis := dict "eu-west-1" "ami-0ab304a09cc427b42" }}
             {{- $ami := get $amis $region }}
             {{- if not $ami }}{{ fail (printf "no AlmaLinux AMI known for region %s; add it to the composition" $region) }}{{ end }}
+            {{- $adminSecret := default (printf "%s-admin" $name) $spec.adminSecretName }}
+            {{- /* The admin password (base64, as stored in the Secret) is read via extra resources. */ -}}
+            {{- $pwB64 := "" }}
+            {{- range $i, $s := (index (default dict .extraResources) "admin-secret").items }}
+            {{- $pwB64 = $s.resource.data.password }}
+            {{- end }}
+            ---
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: ExtraResources
+            requirements:
+              admin-secret:
+                apiVersion: v1
+                kind: Secret
+                matchName: {{ $adminSecret }}
+                namespace: {{ $ns }}
             ---
             apiVersion: ec2.aws.m.upbound.io/v1beta1
             kind: SecurityGroup
@@ -92,7 +107,34 @@ spec:
                 fromPort: 80
                 toPort: 80
                 cidrIpv4: 0.0.0.0/0
+            {{- if $spec.sshSourceCidr }}
+            ---
+            apiVersion: ec2.aws.m.upbound.io/v1beta1
+            kind: SecurityGroupIngressRule
+            metadata:
+              name: {{ $name }}-ssh
+              namespace: {{ $ns }}
+              annotations:
+                {{ setResourceNameAnnotation "sg-ssh" }}
+            spec:
+              providerConfigRef:
+                kind: ClusterProviderConfig
+                name: default
+              forProvider:
+                region: {{ $region }}
+                securityGroupIdRef:
+                  name: {{ $name }}
+                ipProtocol: tcp
+                fromPort: 22
+                toPort: 22
+                cidrIpv4: {{ $spec.sshSourceCidr }}
             {{- end }}
+            {{- end }}
+            {{- /* Create the instance only when the password Secret has been read. */ -}}
+            {{- if $pwB64 }}
+            {{- /* Set the ec2-user password and enable SSH password login. The
+                   user data script follows; its own shebang is just a comment. */ -}}
+            {{- $pwScript := printf "#!/bin/bash\necho \"ec2-user:$(echo %s | base64 -d)\" | chpasswd\nprintf 'PasswordAuthentication yes\\n' > /etc/ssh/sshd_config.d/01-password.conf\nsystemctl restart sshd\n" $pwB64 }}
             ---
             apiVersion: ec2.aws.m.upbound.io/v1beta1
             kind: Instance
@@ -117,11 +159,10 @@ spec:
             {{- if $public }}
                 associatePublicIpAddress: true
             {{- end }}
-            {{- if $spec.userdata }}
-                userData: {{ $spec.userdata | toJson }}
-            {{- end }}
+                userData: {{ printf "%s%s" $pwScript (default "" $spec.userdata) | toJson }}
                 tags:
                   Name: {{ $name }}
+            {{- end }}
     - step: auto-ready
       functionRef:
         name: crossplane-contrib-function-auto-ready

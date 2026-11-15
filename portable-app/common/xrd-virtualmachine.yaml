@@ -68,7 +68,15 @@ spec:
                 adminSecretName:
                   description: >-
                     Name of the Secret (key "password") with the VM admin
-                    password. Azure only; defaults to <name>-admin.
+                    password. Defaults to <name>-admin. Must be in the same
+                    namespace as the VM. On AWS the password is set for
+                    ec2-user through user data, on Azure for azureuser.
+                  type: string
+                sshSourceCidr:
+                  description: >-
+                    CIDR block (for example 203.0.113.10/32) that is allowed
+                    to connect with SSH (port 22). Only applies to VMs in the
+                    "public" subnet. When empty, SSH stays closed.
                   type: string
               required:
                 - network

@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 #
-# Update the pinned AlmaLinux AMI ID in aws/composition-virtualmachine.yaml.
-# AlmaLinux does not publish a Systems Manager public parameter, so the latest
-# AMI is looked up with EC2 DescribeImages (owner: AlmaLinux OS Foundation).
+# Update values in the manifests that change over time:
 #
-# Only eu-west-1 is handled. Requires a logged-in session for the AWS profile.
+#   1. The pinned AlmaLinux AMI ID in aws/composition-virtualmachine.yaml.
+#      AlmaLinux does not publish a Systems Manager public parameter, so the
+#      latest AMI is looked up with EC2 DescribeImages (owner: AlmaLinux OS
+#      Foundation). Only eu-west-1 is handled. Requires a logged-in session
+#      for the AWS profile.
+#   2. The SSH source CIDR (spec.sshSourceCidr) in aws/guild.yaml and
+#      azure/guild.yaml, set to the current public IP address of this machine.
 #
 # Usage:
-#   ./update-aws-amis.sh [--dry-run] [aws-profile]
+#   ./update-dynamic-values.sh [--dry-run] [aws-profile]
 #
 # The AWS profile defaults to "xforce-sandbox1". --dry-run only shows what
 # would change.
@@ -16,17 +20,32 @@ DEFAULT_AWS_PROFILE="xforce-sandbox1"
 REGION="eu-west-1"
 ALMALINUX_OWNER_ID="764336703387"
 ALMALINUX_MAJOR="10"
+IP_LOOKUP_URL="https://checkip.amazonaws.com"
 
 function run_in_script_dir() {
 
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   cd "$SCRIPT_DIR"
   COMPOSITION="aws/composition-virtualmachine.yaml"
+  GUILD_FILES=("aws/guild.yaml" "azure/guild.yaml")
 
 }
 
 
 function prerequisite_checks() {
+
+  local file
+  for file in "$COMPOSITION" "${GUILD_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+      echo "ERROR: ${file} not found." >&2
+      exit 1
+    fi
+  done
+
+  command -v curl >/dev/null 2>&1 || {
+    echo "ERROR: curl is not installed or not on PATH." >&2
+    exit 1
+  }
 
   command -v aws >/dev/null 2>&1 || {
     echo "ERROR: AWS CLI (aws) is not installed or not on PATH." >&2
@@ -35,11 +54,6 @@ function prerequisite_checks() {
 
   if ! aws sts get-caller-identity >/dev/null 2>&1; then
     echo "ERROR: Not logged in to AWS profile '${AWS_PROFILE}'. Run 'aws sso login --profile ${AWS_PROFILE}' first." >&2
-    exit 1
-  fi
-
-  if [ ! -f "$COMPOSITION" ]; then
-    echo "ERROR: ${COMPOSITION} not found." >&2
     exit 1
   fi
 
@@ -110,6 +124,54 @@ function update_composition() {
 }
 
 
+function find_public_ip() {
+
+  echo "==> Looking up the current public IP address"
+
+  PUBLIC_IP="$(curl -fsS --max-time 10 "$IP_LOOKUP_URL" | tr -d '[:space:]')"
+
+  if ! echo "$PUBLIC_IP" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+    echo "ERROR: Could not determine a public IPv4 address (got: '${PUBLIC_IP}')." >&2
+    exit 1
+  fi
+
+  echo "    Found ${PUBLIC_IP}"
+
+}
+
+
+function update_ssh_source_cidr() {
+
+  local file current
+  local new_cidr="${PUBLIC_IP}/32"
+
+  for file in "${GUILD_FILES[@]}"; do
+    current="$(grep -E '^[[:space:]]*sshSourceCidr:' "$file" | head -n 1 | awk '{print $2}' || true)"
+
+    if [ -z "$current" ]; then
+      echo "ERROR: Could not find sshSourceCidr in ${file}." >&2
+      exit 1
+    fi
+
+    if [ "$current" = "$new_cidr" ]; then
+      echo "==> ${file} already allows SSH from ${new_cidr}; nothing to do."
+      continue
+    fi
+
+    echo "==> ${file}: sshSourceCidr ${current} -> ${new_cidr}"
+
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "    Dry run: ${file} not changed."
+      continue
+    fi
+
+    sed -i -E "s|^([[:space:]]*sshSourceCidr:).*|\1 ${new_cidr}|" "$file"
+    echo "    ${file} updated. Review and commit the change."
+  done
+
+}
+
+
 # Main
 
 set -euo pipefail
@@ -131,3 +193,5 @@ run_in_script_dir
 prerequisite_checks
 find_latest_ami
 update_composition
+find_public_ip
+update_ssh_source_cidr

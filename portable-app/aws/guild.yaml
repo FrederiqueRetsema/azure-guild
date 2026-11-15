@@ -29,6 +29,8 @@ spec:
   network: guild-network
   subnet: public
   image: almalinux
+  adminSecretName: guild-vm-admin
+  sshSourceCidr: 91.132.42.96/32
   userdata: |
     #!/bin/bash
     dnf install -y httpd mysql8.4
