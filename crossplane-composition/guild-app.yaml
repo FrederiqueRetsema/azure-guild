@@ -1,7 +1,7 @@
 apiVersion: apps.azure-guild.io/v1alpha1
 kind: DeploymentAndService
 metadata:
-  name: guild-app
+  name: guild-app-2
   annotations:
     # Apply the composite resource last, once the XRD's CRD is registered.
     argocd.argoproj.io/sync-wave: "2"

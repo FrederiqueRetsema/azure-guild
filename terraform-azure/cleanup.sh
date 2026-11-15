@@ -38,6 +38,12 @@ function prerequisite_checks() {
 }
 
 
+function filter_kubectl_watch_noise() {
+  # kubectl prints client-go reflector retry messages (for example when the AKS
+  # API server briefly returns 503 during a watch). They are harmless because
+  # kubectl retries, so drop them. All other stderr output is passed through.
+  grep --line-buffered -v 'reflector\.go' || true
+}
 function crossplane_predestroy_cleanup() {
 
   # Crossplane-managed Azure resources (the MySQL Flexible Servers, firewall
@@ -75,7 +81,8 @@ function crossplane_predestroy_cleanup() {
 
   echo "==> Deleting ArgoCD Applications that manage Crossplane resources"
   kubectl -n argocd delete application portable-app crossplane-managed-resource \
-    --cascade=foreground --ignore-not-found --timeout=15m || true
+    --cascade=foreground --ignore-not-found --timeout=15m \
+    2> >(filter_kubectl_watch_noise >&2) || true
 
   echo "==> Deleting remaining Crossplane managed resources directly (belt and suspenders)"
   kubectl delete managed --all --all-namespaces --ignore-not-found --wait=false >/dev/null 2>&1 || true
@@ -109,7 +116,8 @@ function delete_crossplane_providerconfigs() {
     if ! kubectl get "$kind" >/dev/null 2>&1; then
       continue
     fi
-    kubectl delete "$kind" --all --ignore-not-found --timeout=5m || true
+    kubectl delete "$kind" --all --ignore-not-found --timeout=5m \
+      2> >(filter_kubectl_watch_noise >&2) || true
   done
 
   local deadline=$(( $(date +%s) + 300 ))
