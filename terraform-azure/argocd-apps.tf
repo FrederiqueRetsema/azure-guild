@@ -166,5 +166,10 @@ resource "kubernetes_manifest" "portable_app" {
     }
   }
 
-  depends_on = [helm_release.argocd, helm_release.crossplane]
+  # Only start syncing once the Azure providers are healthy (CRDs registered).
+  depends_on = [
+    helm_release.argocd,
+    helm_release.crossplane,
+    kubernetes_manifest.crossplane_provider_azure_service,
+  ]
 }

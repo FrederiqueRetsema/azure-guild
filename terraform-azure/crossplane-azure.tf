@@ -27,6 +27,15 @@ resource "kubernetes_manifest" "crossplane_provider_azure_service" {
     }
   }
 
+  # Wait until the provider is healthy, so its CRDs are registered before
+  # ArgoCD syncs the portable-app compositions.
+  wait {
+    condition {
+      type   = "Healthy"
+      status = "True"
+    }
+  }
+
   depends_on = [kubernetes_manifest.crossplane_provider_family_azure]
 }
 

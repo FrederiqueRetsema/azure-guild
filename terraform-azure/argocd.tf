@@ -35,6 +35,12 @@ resource "helm_release" "argocd" {
             hs.message = "CompositionRevision is an immutable snapshot; treated as Healthy"
             return hs
           EOT
+          "resource.customizations.health.pkg.crossplane.io_FunctionRevision"              = <<-EOT
+            hs = {}
+            hs.status = "Healthy"
+            hs.message = "FunctionRevision has no ArgoCD health check; treated as Healthy"
+            return hs
+          EOT
         }
       }
     })
