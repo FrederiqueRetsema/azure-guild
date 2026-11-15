@@ -111,6 +111,7 @@ spec:
                 storageType: gp3
                 # RDS database names allow letters, digits and underscores only.
                 dbName: {{ $spec.databaseName | replace "-" "_" }}
+                identifier: {{ $name }}
                 username: mysqladmin
                 passwordSecretRef:
                   name: {{ $spec.secretName }}
