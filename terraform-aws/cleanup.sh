@@ -15,6 +15,10 @@ function select_aws_profile() {
   # Exporting AWS_PROFILE makes the AWS CLI, the Terraform AWS provider and the
   # 'aws eks get-token' exec plugin (kubernetes/helm providers) use this profile.
   export AWS_PROFILE="${1:-$DEFAULT_AWS_PROFILE}"
+  export TF_VAR_aws_profile="${AWS_PROFILE}"
+  # Static credentials in the environment take precedence over AWS_PROFILE and
+  # would silently bypass the profile (for example expired keys).
+  unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
   echo "Using AWS profile: ${AWS_PROFILE}"
 
 }
@@ -45,7 +49,7 @@ function prerequisite_checks() {
     exit 1
   }
 
-  if ! aws sts get-caller-identity >/dev/null 2>&1; then
+  if ! aws sts get-caller-identity --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
     echo "ERROR: Not logged in to AWS with profile '${AWS_PROFILE}'. Run 'aws sso login --profile ${AWS_PROFILE}' first." >&2
     exit 1
   fi
@@ -88,7 +92,8 @@ function crossplane_predestroy_cleanup() {
 
   if ! aws eks update-kubeconfig \
         --region "$region" \
-        --name "$cluster_name" >/dev/null 2>&1; then
+        --name "$cluster_name" \
+        --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
     echo "==> EKS cluster '${cluster_name}' not reachable; skipping Crossplane pre-destroy cleanup."
     return
   fi

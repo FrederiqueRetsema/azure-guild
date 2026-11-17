@@ -13,6 +13,10 @@ function select_aws_profile() {
   # Exporting AWS_PROFILE makes the AWS CLI, the Terraform AWS provider and the
   # 'aws eks get-token' exec plugin (kubernetes/helm providers) use this profile.
   export AWS_PROFILE="${1:-$DEFAULT_AWS_PROFILE}"
+  export TF_VAR_aws_profile="${AWS_PROFILE}"
+  # Static credentials in the environment take precedence over AWS_PROFILE and
+  # would silently bypass the profile (for example expired keys).
+  unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
   echo "Using AWS profile: ${AWS_PROFILE}"
 
 }
@@ -48,7 +52,7 @@ function prerequisite_checks() {
     exit 1
   }
 
-  if ! aws sts get-caller-identity >/dev/null 2>&1; then
+  if ! aws sts get-caller-identity --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
     echo "ERROR: Not logged in to AWS with profile '${AWS_PROFILE}'. Run 'aws sso login --profile ${AWS_PROFILE}' first." >&2
     exit 1
   fi
@@ -60,7 +64,7 @@ function prerequisite_checks() {
     exit 1
   fi
 
-  AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+  AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text --profile ${AWS_PROFILE})"
   echo "Using AWS profile ${AWS_PROFILE}, account: ${AWS_ACCOUNT_ID}"
 
 }
@@ -133,7 +137,8 @@ function terraform_deploy_crossplane_aws_family_provider() {
   CLUSTER_NAME="$(terraform console <<<'var.cluster_name' | tr -d '"')"
   aws eks update-kubeconfig \
     --region "$REGION" \
-    --name "$CLUSTER_NAME" >/dev/null
+    --name "$CLUSTER_NAME" \
+    --profile "${AWS_PROFILE}" >/dev/null
 
   echo "==> Waiting for the Crossplane providers to become healthy"
   kubectl wait --for=condition=Healthy provider.pkg.crossplane.io --all \

@@ -1,5 +1,6 @@
 provider "aws" {
-  region = var.region
+  region  = var.region
+  profile = var.aws_profile
 
   default_tags {
     tags = var.tags
@@ -16,7 +17,7 @@ provider "kubernetes" {
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.this.name, "--region", var.region]
+    args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.this.name, "--region", var.region, "--profile", var.aws_profile]
   }
 }
 
@@ -28,7 +29,7 @@ provider "helm" {
     exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.this.name, "--region", var.region]
+      args        = ["eks", "get-token", "--cluster-name", aws_eks_cluster.this.name, "--region", var.region, "--profile", var.aws_profile]
     }
   }
 }

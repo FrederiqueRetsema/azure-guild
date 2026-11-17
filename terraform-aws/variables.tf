@@ -1,3 +1,9 @@
+variable "aws_profile" {
+  description = "AWS CLI profile used by the AWS provider and by 'aws eks get-token'. deploy.sh and cleanup.sh set it through TF_VAR_aws_profile."
+  type        = string
+  default     = "xforce-sandbox1"
+}
+
 variable "region" {
   description = "AWS region to deploy resources into."
   type        = string
