@@ -52,7 +52,7 @@ function prerequisite_checks() {
     exit 1
   }
 
-  if ! aws sts get-caller-identity >/dev/null 2>&1; then
+  if ! aws sts get-caller-identity --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
     echo "ERROR: Not logged in to AWS profile '${AWS_PROFILE}'. Run 'aws sso login --profile ${AWS_PROFILE}' first." >&2
     exit 1
   fi
@@ -73,7 +73,8 @@ function find_latest_ami() {
       "Name=architecture,Values=x86_64" \
       "Name=state,Values=available" \
     --query 'sort_by(Images, &CreationDate)[-1].[ImageId, Name]' \
-    --output text)"
+    --output text \
+    --profile ${AWS_PROFILE})"
 
   AMI_ID="$(echo "$result" | awk '{print $1}')"
   AMI_NAME="$(echo "$result" | cut -f2-)"

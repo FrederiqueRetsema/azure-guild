@@ -29,8 +29,8 @@ spec:
             {{- if ne (default "almalinux" $spec.image) "almalinux" }}{{ fail "only image almalinux is supported" }}{{ end }}
             {{- $public := eq $spec.subnet "public" }}
             {{- $types := dict "XS" "t3.micro" "S" "t3.small" "M" "t3.medium" "L" "t3.large" "XL" "t3.xlarge" }}
-            {{- /* AlmaLinux OS 10.2 (x86_64) community AMI. Updated by update-dynamic-values.sh */ -}}
-            {{- $amis := dict "eu-west-1" "ami-0ab304a09cc427b42" }}
+            {{- /* AlmaLinux OS 10.3 (x86_64) community AMI. Updated by update-dynamic-values.sh */ -}}
+            {{- $amis := dict "eu-west-1" "ami-0582b37c9390b6d37" }}
             {{- $ami := get $amis $region }}
             {{- if not $ami }}{{ fail (printf "no AlmaLinux AMI known for region %s; add it to the composition" $region) }}{{ end }}
             {{- $adminSecret := default (printf "%s-admin" $name) $spec.adminSecretName }}
